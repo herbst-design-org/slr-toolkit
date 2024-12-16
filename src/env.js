@@ -11,8 +11,9 @@ export const env = createEnv({
       process.env.NODE_ENV === "production"
         ? z.string()
         : z.string().optional(),
-    AUTH_DISCORD_ID: z.string(),
-    AUTH_DISCORD_SECRET: z.string(),
+    KEYCLOAK_ID: z.string(),
+    KEYCLOAK_SECRET: z.string(),
+    KEYCLOAK_ISSUER: z.string(),
     DATABASE_URL: z.string().url(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
@@ -34,8 +35,9 @@ export const env = createEnv({
    */
   runtimeEnv: {
     AUTH_SECRET: process.env.AUTH_SECRET,
-    AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
-    AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
+    KEYCLOAK_ID: process.env.KEYCLOAK_ID,
+    KEYCLOAK_SECRET: process.env.KEYCLOAK_SECRET,
+    KEYCLOAK_ISSUER: process.env.KEYCLOAK_ISSUER,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
   },
