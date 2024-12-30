@@ -39,6 +39,7 @@ import { InboxIcon, MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 import { Heading } from "../heading";
 import { Divider } from "../divider";
 import { auth } from "~/server/auth";
+import { ToastContainer } from "react-toastify";
 
 const navItems = [
   { label: "Home", url: "/" },
@@ -176,6 +177,12 @@ export default async function CustomNavbar({
       <Heading className="mb-2 sm:mb-4">{title}</Heading>
       <Divider className="mb-4 sm:mb-8" />
       {children}
+      <ToastContainer
+        stacked
+        hideProgressBar
+        position="bottom-right"
+        className=""
+      />
     </StackedLayout>
   );
 }

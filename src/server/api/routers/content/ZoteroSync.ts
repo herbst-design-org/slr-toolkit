@@ -1,3 +1,5 @@
+import { CollectionResponse } from "./ContentProvider";
+
 // Top-level array returned by the Zotero API
 export type ZoteroItemResponse = ZoteroItem[];
 
@@ -14,7 +16,6 @@ export interface ZoteroItem {
   data: ZoteroItemData;
 }
 
-// Library info (user or group)
 export interface ZoteroLibrary {
   type: "user" | "group";
   id: number;
@@ -65,8 +66,7 @@ export interface ZoteroTag {
   type: number;
 }
 
-type ZoteroLibraryType = "user" | "group";
-
+export type ZoteroLibraryType = "user" | "group";
 interface ZoteroConfig {
   apiKey: string;
   libraryType: ZoteroLibraryType;
@@ -87,6 +87,12 @@ export class ZoteroSync {
     }
   }
 
+  public async verify(): Promise<boolean> {
+    const url = `${this.baseUrl}${this.getLibraryPrefix()}/items`;
+    const response = await this.timeoutFetch(url);
+    return response.ok;
+  }
+
   /**
    * Update function to fetch items in a given collection
    * that have changed since 'lastSyncedVersion'.
@@ -98,6 +104,19 @@ export class ZoteroSync {
     // Fetch all relevant items (pagination included) and handle timeouts
     const items = await this.fetchAllItems(collectionId, lastSyncedVersion);
     return items;
+  }
+
+  public async getCollections(): Promise<CollectionResponse> {
+    const url = `${this.baseUrl}${this.getLibraryPrefix()}/collections`;
+    const response = await this.timeoutFetch(url);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch collections. Status: ${response.status}`,
+      );
+    }
+
+    const collections = (await response.json()) as CollectionResponse;
+    return collections;
   }
 
   private getLibraryPrefix(): string {

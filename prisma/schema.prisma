@@ -71,14 +71,24 @@ model ContentProvider {
 
     // Credentials - might vary per provider
     apiUser String? 
-    apiKey String
+    apiKey String /// @encrypted
+
+    libraryId String? // ZOTERO
+    libraryType LibraryType? // ZOTERO 
 
     user User @relation(fields: [userId], references: [id])
     userId String
+
+    @@unique([type, userId, libraryId])
 }
 
 enum ContentProviderType {
     ZOTERO
-    MENDLEY
+    MENDELEY
     ENDNOTE
+}
+
+enum LibraryType {
+    user 
+    group 
 }
