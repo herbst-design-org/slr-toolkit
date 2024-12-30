@@ -32,7 +32,7 @@ declare module "next-auth" {
  */
 export const authConfig = {
   providers: [
-        KeycloakProvider({
+    KeycloakProvider({
       clientId: env.KEYCLOAK_ID,
       clientSecret: env.KEYCLOAK_SECRET,
       issuer: env.KEYCLOAK_ISSUER,
