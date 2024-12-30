@@ -34,8 +34,13 @@ export const contentRouter = createTRPCRouter({
           throw new Error("Endnote is not supported yet");
         }
       } catch (error) {
+        let errorMessage = "An unknown error occurred";
+
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        }
         throw new TRPCError({
-          message: "Failed to create content provider: " + error?.message,
+          message: "Failed to create content provider: " + errorMessage,
           code: "INTERNAL_SERVER_ERROR",
         });
       }

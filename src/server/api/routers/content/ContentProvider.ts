@@ -24,7 +24,7 @@ interface ContentProviderConfig {
   providerType: ContentProviderType;
   apiKey: string;
   libraryType: LibraryType | null;
-  libraryId: string;
+  libraryId: string | null;
 }
 
 export class ContentProvider {
@@ -37,6 +37,9 @@ export class ContentProvider {
       case "ZOTERO":
         if (!libraryType) {
           throw new Error("Missing 'libraryType' for Zotero provider");
+        }
+        if (!libraryId) {
+          throw new Error("Missing 'libraryId' for Zotero provider");
         }
         this.provider = new ZoteroSync({
           apiKey,
