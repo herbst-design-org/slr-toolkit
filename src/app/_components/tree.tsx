@@ -10,7 +10,6 @@ import { Text } from "./text";
 import type { CollectionResponse } from "~/server/api/routers/content/ContentProvider";
 import { useMemo } from "react";
 import { Badge } from "./badge";
-import { PlusIcon } from "@heroicons/react/16/solid";
 
 export interface TreeNode {
   name: string;
@@ -69,7 +68,12 @@ const TrackCollectionBadge = ({
   amountPapers?: number;
 }) => {
   return (
-    <Badge className="z-20 cursor-pointer">
+    <Badge
+      className="z-20 cursor-pointer"
+      onClick={() => {
+        console.log(id);
+      }}
+    >
       <NewspaperIcon className="h-4 w-4" />
       {amountPapers ?? 0}
     </Badge>
@@ -122,8 +126,8 @@ function TreeItem({ node }: { node: TreeNode }) {
                   {node.name}
                 </Text>
               </DisclosureButton>
-<TrackCollectionBadge amountPapers={node.numberOfItems} id="x" />
-                          </div>
+              <TrackCollectionBadge amountPapers={node.numberOfItems} id="x" />
+            </div>
 
             <DisclosurePanel
               as="ul"

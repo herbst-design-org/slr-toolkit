@@ -1,4 +1,3 @@
-import { FolderIcon, HomeIcon, UsersIcon } from "@heroicons/react/16/solid";
 import { type ReactElement } from "react";
 import Tree from "~/app/_components/tree";
 import { api } from "~/trpc/server";

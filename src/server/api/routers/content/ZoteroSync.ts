@@ -1,4 +1,4 @@
-import { CollectionResponse } from "./ContentProvider";
+import { type CollectionResponse } from "./ContentProvider";
 
 // Top-level array returned by the Zotero API
 export type ZoteroItemResponse = ZoteroItem[];
@@ -74,7 +74,7 @@ export interface ZoteroItemData {
   collections: string[];
   dateAdded?: string;
   dateModified?: string;
-  [field: string]: any; // for additional Zotero fields like url, publisher, etc.
+  [field: string]: unknown; // for additional Zotero fields like url, publisher, etc.
 }
 
 // Creators can be "author", "contributor", or have just a "name"

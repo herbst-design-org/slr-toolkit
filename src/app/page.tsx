@@ -1,5 +1,4 @@
-import { auth } from "~/server/auth";
-import { api, HydrateClient } from "~/trpc/server";
+import {  HydrateClient } from "~/trpc/server";
 import { Inter } from "next/font/google";
 import CustomNavbar from "./_components/custom-navbar";
 
