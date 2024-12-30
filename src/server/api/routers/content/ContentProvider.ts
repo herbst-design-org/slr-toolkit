@@ -7,7 +7,7 @@ type ItemResponse = ZoteroItemResponse;
 export type CollectionResponse = {
   id: string;
   name: string;
-  parentCollection?: string;
+  parentId?: string;
   numberOfItems?: number;
 }[];
 
@@ -24,15 +24,14 @@ interface ContentProviderConfig {
   providerType: ContentProviderType;
   apiKey: string;
   libraryType: LibraryType | null;
-  userId?: string;
-  groupId?: string;
+  libraryId: string;
 }
 
 export class ContentProvider {
   private provider: SyncProvider;
 
   constructor(config: ContentProviderConfig) {
-    const { providerType, apiKey, libraryType, userId, groupId } = config;
+    const { providerType, apiKey, libraryType, libraryId } = config;
 
     switch (providerType) {
       case "ZOTERO":
@@ -42,8 +41,8 @@ export class ContentProvider {
         this.provider = new ZoteroSync({
           apiKey,
           libraryType,
-          userId,
-          groupId,
+          userId: libraryId,
+          groupId: libraryId,
         });
         break;
       default:

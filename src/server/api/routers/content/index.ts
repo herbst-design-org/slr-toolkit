@@ -49,15 +49,12 @@ export const contentRouter = createTRPCRouter({
         },
       });
     }),
-  getMeta: protectedProcedure.query(async ({ ctx }) => {
-    const providers = await ctx.db.contentProvider.findMany({
+  getAll: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.db.contentProvider.findMany({
       where: {
         userId: ctx.session.user.id,
       },
     });
-    return {
-      setUpProviders: providers.map((provider) => provider.type),
-    };
   }),
   getCollections: protectedProcedure
     .input(

@@ -3,7 +3,6 @@ import { CollectionResponse } from "./ContentProvider";
 // Top-level array returned by the Zotero API
 export type ZoteroItemResponse = ZoteroItem[];
 
-// Single item in the Zotero response
 export interface ZoteroItem {
   key: string;
   version: number;
@@ -23,6 +22,32 @@ export interface ZoteroLibrary {
   links: {
     alternate: ZoteroLink;
   };
+}
+
+export interface ZoteroCollection {
+  key: string;
+  version: number;
+  library: ZoteroLibrary;
+  links: {
+    self: ZoteroLink;
+    alternate: ZoteroLink;
+    up: ZoteroLink;
+  };
+  meta: CollectionMeta;
+  data: CollectionData;
+}
+
+interface CollectionMeta {
+  numCollections: number;
+  numItems: number;
+}
+
+interface CollectionData {
+  key: string;
+  version: number;
+  name: string;
+  parentCollection?: string;
+  relations: Record<string, string>;
 }
 
 // Standard hyperlink info
@@ -67,6 +92,7 @@ export interface ZoteroTag {
 }
 
 export type ZoteroLibraryType = "user" | "group";
+
 interface ZoteroConfig {
   apiKey: string;
   libraryType: ZoteroLibraryType;
@@ -105,9 +131,12 @@ export class ZoteroSync {
     const items = await this.fetchAllItems(collectionId, lastSyncedVersion);
     return items;
   }
-
+  /**
+   * Fetch all collections in the Zotero library.
+   */
   public async getCollections(): Promise<CollectionResponse> {
     const url = `${this.baseUrl}${this.getLibraryPrefix()}/collections`;
+    console.log(url);
     const response = await this.timeoutFetch(url);
     if (!response.ok) {
       throw new Error(
@@ -115,8 +144,14 @@ export class ZoteroSync {
       );
     }
 
-    const collections = (await response.json()) as CollectionResponse;
-    return collections;
+    const collections = (await response.json()) as ZoteroCollection[];
+    const formattedCollections = collections.map((c) => ({
+      id: c.key,
+      name: c.data.name,
+      parentId: c.data.parentCollection,
+      numberOfItems: c.meta.numItems,
+    }));
+    return formattedCollections;
   }
 
   private getLibraryPrefix(): string {

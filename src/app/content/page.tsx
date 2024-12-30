@@ -10,25 +10,33 @@ export default async function ContentPage({
 }: {
   searchParams: Promise<{ tabIndex: string }>;
 }): Promise<ReactElement> {
-  const providerMeta = await api.contentProvider.getMeta();
+  const providers = await api.contentProvider.getAll();
+
   const { tabIndex } = await searchParams;
-  const allProviders: ContentProviderType[] = ["ZOTERO", "MENDELEY", "ENDNOTE"];
+  const createProviderList: ContentProviderType[] = [
+    "ZOTERO",
+    "MENDELEY",
+    "ENDNOTE",
+  ];
 
   //tab related data
   const indexParam = Number(tabIndex) || 0;
   const currentTabIndex = isNaN(indexParam) ? 0 : indexParam;
-  const tabsData = allProviders.map((provider) => {
+  const existingProvidersTabs = providers.map((provider) => {
     return {
-      label: provider,
+      label: provider.id,
       content: (
-        <ContentProvider
-          type={provider}
-          isSetup={providerMeta.setUpProviders.includes(provider)}
-        />
+        <ContentProvider type={provider.type} providerId={provider.id} />
       ),
     };
   });
-
+  const createProviderTabs = createProviderList.map((provider) => {
+    return {
+      label: provider,
+      content: <ContentProvider type={provider} />,
+    };
+  });
+  const tabsData = [...existingProvidersTabs, ...createProviderTabs];
   return (
     <>
       <CustomNavbar title="Content">

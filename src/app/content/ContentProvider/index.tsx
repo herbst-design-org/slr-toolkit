@@ -5,17 +5,17 @@ import ContentProviderData from "./ContentProviderData";
 
 interface Props {
   type: ContentProviderType;
-  isSetup: boolean;
+  providerId?: string;
 }
 
 export default function ContentProvider({
   type,
-  isSetup,
+  providerId,
 }: Props): ReactElement {
   return (
     <>
-      {isSetup ? (
-        <ContentProviderData type={type} />
+      {providerId ? (
+        <ContentProviderData providerId={providerId} />
       ) : (
         <SetupContentProviderForm type={type} />
       )}
