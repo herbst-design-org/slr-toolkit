@@ -24,7 +24,7 @@ export default async function ContentPage({
   const currentTabIndex = isNaN(indexParam) ? 0 : indexParam;
   const existingProvidersTabs = providers.map((provider) => {
     return {
-      label: provider.id,
+      label: provider.name,
       content: (
         <ContentProvider type={provider.type} providerId={provider.id} />
       ),
@@ -39,7 +39,7 @@ export default async function ContentPage({
   const tabsData = [...existingProvidersTabs, ...createProviderTabs];
   return (
     <>
-      <CustomNavbar title="Content">
+      <CustomNavbar title="Provider">
         <Tabs tabs={tabsData} currentTabIndex={currentTabIndex} />
       </CustomNavbar>
     </>

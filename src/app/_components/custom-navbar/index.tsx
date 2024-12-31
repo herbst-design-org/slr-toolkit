@@ -43,8 +43,8 @@ import { ToastContainer } from "react-toastify";
 
 const navItems = [
   { label: "Home", url: "/" },
-  { label: "Content", url: "/content" },
-  { label: "Orders", url: "/orders" },
+  { label: "Provider", url: "/content" },
+  { label: "SLR", url: "/slr" },
   { label: "Broadcasts", url: "/broadcasts" },
   { label: "Settings", url: "/settings" },
 ];
@@ -59,7 +59,7 @@ function TeamDropdownMenu() {
       <DropdownDivider />
       <DropdownItem href="/teams/1">
         <Avatar slot="icon" src="/tailwind-logo.svg" />
-        <DropdownLabel>Tailwind Labs</DropdownLabel>
+        <DropdownLabel>SLR Toolkit</DropdownLabel>
       </DropdownItem>
       <DropdownItem href="/teams/2">
         <Avatar
@@ -96,8 +96,8 @@ export default async function CustomNavbar({
         <Navbar>
           <Dropdown>
             <DropdownButton as={NavbarItem} className="max-lg:hidden">
-              <Avatar src="/tailwind-logo.svg" />
-              <NavbarLabel>Tailwind Labs</NavbarLabel>
+              <Avatar src="/logo.svg" />
+              <NavbarLabel>SLR Toolkit</NavbarLabel>
               <ChevronDownIcon />
             </DropdownButton>
             <TeamDropdownMenu />
@@ -156,7 +156,7 @@ export default async function CustomNavbar({
             <Dropdown>
               <DropdownButton as={SidebarItem} className="lg:mb-2.5">
                 <Avatar src="/tailwind-logo.svg" />
-                <SidebarLabel>Tailwind Labs</SidebarLabel>
+                <SidebarLabel>SLR Toolkit</SidebarLabel>
                 <ChevronDownIcon />
               </DropdownButton>
               <TeamDropdownMenu />

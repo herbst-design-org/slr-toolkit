@@ -131,7 +131,7 @@ function TreeItem({ node }: { node: TreeNode }) {
 
             <DisclosurePanel
               as="ul"
-              className="ml-6 mt-1 space-y-1 border-l pl-2"
+              className="ml-[9.5px] mt-1 space-y-1 border-l border-zinc-600 pl-2"
             >
               {node.children?.map((child) => (
                 <TreeItem key={child.name} node={child} />

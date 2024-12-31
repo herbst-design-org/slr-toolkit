@@ -13,6 +13,7 @@ export const contentRouter = createTRPCRouter({
         apiKey: z.string(),
         libraryType: z.enum(["user", "group"]),
         libraryId: z.string(),
+        name: z.string(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -51,6 +52,7 @@ export const contentRouter = createTRPCRouter({
           userId: ctx.session.user.id,
           libraryId: input.libraryId,
           libraryType: input.libraryType,
+          name: input.name,
         },
       });
     }),

@@ -68,6 +68,7 @@ model VerificationToken {
 model ContentProvider {
     id  String @id @default(cuid())
     type ContentProviderType @default(ZOTERO)
+    name String @default("Provider")
 
     // Credentials - might vary per provider
     apiUser String? 

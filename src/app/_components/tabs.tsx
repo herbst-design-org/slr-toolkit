@@ -18,7 +18,7 @@ export default function Tabs({ tabs, currentTabIndex }: TabsProps) {
         <NavbarSection>
           {tabs.map((tab, i) => (
             <NavbarItem
-              key={tab.label}
+              key={i}
               href={`?tabIndex=${i}`}
               current={i === currentTabIndex}
             >
