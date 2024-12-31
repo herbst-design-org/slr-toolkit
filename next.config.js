@@ -6,6 +6,8 @@ import "./src/env.js";
 
 
 /** @type {import("next").NextConfig} */
-const config = { reactStrictMode: true,  output: "standalone" };
+const config = { reactStrictMode: true,  output: "standalone", images: {
+    domains: ['replicate.delivery'],
+  }, };
 
 export default config;
