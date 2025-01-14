@@ -18,6 +18,10 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    DEFAULT_VECTORPROVIDER_URL: z.string().url(),
+    DEFAULT_VECTORPROVIDER_SECRET: z.string(),
+    QDRANT_URL: z.string().url(),
+    QDRANT_SECRET: z.string(),
   },
 
   /**
@@ -40,6 +44,10 @@ export const env = createEnv({
     KEYCLOAK_ISSUER: process.env.KEYCLOAK_ISSUER,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
+    DEFAULT_VECTORPROVIDER_URL: process.env.DEFAULT_VECTORPROVIDER_URL,
+    DEFAULT_VECTORPROVIDER_SECRET: process.env.DEFAULT_VECTORPROVIDER_SECRET,
+    QDRANT_URL: process.env.QDRANT_URL,
+    QDRANT_SECRET: process.env.QDRANT_SECRET,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

@@ -53,6 +53,7 @@ model User {
     accounts      Account[]
     sessions      Session[]
 
+    vectorProvider VectorProvider[]
     contentProvider ContentProvider[]
     slr            SLR[]
     participatingIn SLR[] @relation("Participants")
@@ -158,8 +159,11 @@ model ItemVector {
 
 model VectorProvider {
     id String @id @default(cuid())
+
     name String
     description String?
+    user User @relation(fields: [userId], references: [id])
+    userId String
     
     url String
     apiKey String /// @encrypted

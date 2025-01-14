@@ -51,7 +51,7 @@ export default function CreateSLR({
   });
 
   const onSubmit = (data: CreateSLRType) => {
-    createSLR.mutate(data);
+    createSLR.mutate({...data, vectorProviderId: "default"});
   };
 
   return (
