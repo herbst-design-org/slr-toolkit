@@ -170,6 +170,7 @@ model VectorProvider {
 
     items ItemVector[]
     slrs SLR[]
+    vectorStoreName String @default(cuid())
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt

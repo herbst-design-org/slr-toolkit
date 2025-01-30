@@ -5,6 +5,7 @@ import CustomNavbar from "./_components/custom-navbar";
 
 const inter = Inter({ subsets: ["latin"] });
 export default async function Home() {
+
   return (
     <HydrateClient>
       <main className={`${inter.className} `}>

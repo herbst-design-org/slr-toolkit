@@ -89,7 +89,6 @@ export default async function CustomNavbar({
   if (!session?.user) {
     redirect("/api/auth/signin");
   }
-
   return (
     <StackedLayout
       navbar={
