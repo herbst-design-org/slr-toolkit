@@ -125,7 +125,7 @@ export class ZoteroSync {
    */
   public async update(
     collectionId: string,
-    lastSyncedVersion: number,
+    lastSyncedVersion?: number,
   ): Promise<ZoteroItemResponse> {
     // Fetch all relevant items (pagination included) and handle timeouts
     const items = await this.fetchAllItems(collectionId, lastSyncedVersion);
@@ -134,7 +134,11 @@ export class ZoteroSync {
   /**
    * Fetch all collections in the Zotero library.
    */
-  public async getCollections(): Promise<CollectionResponse> {
+  public async getCollections({
+    ids,
+  }: {
+    ids?: string[];
+  } = {}): Promise<CollectionResponse> {
     const url = `${this.baseUrl}${this.getLibraryPrefix()}/collections`;
     console.log(url);
     const response = await this.timeoutFetch(url);
@@ -145,12 +149,14 @@ export class ZoteroSync {
     }
 
     const collections = (await response.json()) as ZoteroCollection[];
-    const formattedCollections = collections.map((c) => ({
-      id: c.key,
-      name: c.data.name,
-      parentId: c.data.parentCollection,
-      numberOfItems: c.meta.numItems,
-    }));
+    const formattedCollections = collections
+      .filter((c) => !ids || ids.includes(c.key))
+      .map((c) => ({
+        id: c.key,
+        name: c.data.name,
+        parentId: c.data.parentCollection,
+        numberOfItems: c.meta.numItems,
+      }));
     return formattedCollections;
   }
 
@@ -165,7 +171,10 @@ export class ZoteroSync {
    * Paginate through Zotero items using 'since=lastSyncedVersion'.
    * Returns all items that have changed since 'lastSyncedVersion'.
    */
-  private async fetchAllItems(collectionId: string, lastSyncedVersion: number) {
+  private async fetchAllItems(
+    collectionId: string,
+    lastSyncedVersion?: number,
+  ) {
     let start = 0;
     const limit = 100;
     const allItems: ZoteroItemResponse = [];
@@ -174,7 +183,8 @@ export class ZoteroSync {
       const url = new URL(
         `${this.baseUrl}${this.getLibraryPrefix()}/collections/${collectionId}/items`,
       );
-      url.searchParams.set("since", String(lastSyncedVersion));
+      if (lastSyncedVersion)
+        url.searchParams.set("since", String(lastSyncedVersion));
       url.searchParams.set("limit", String(limit));
       url.searchParams.set("start", String(start));
       // Request JSON format by default
@@ -188,6 +198,7 @@ export class ZoteroSync {
 
       const items = (await response.json()) as ZoteroItemResponse;
       allItems.push(...items);
+      console.log({items});
 
       // Check if there's a "rel=next" link for pagination
       const linkHeader = response.headers.get("Link") ?? "";

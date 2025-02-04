@@ -4,38 +4,74 @@ import {
   DisclosurePanel,
   DisclosureButton,
 } from "@headlessui/react";
+import { useState } from "react";
 import { ChevronRightIcon, NewspaperIcon } from "@heroicons/react/20/solid";
 import clsx from "clsx";
 import { Text } from "./text";
-import type { CollectionResponse } from "~/server/api/routers/content/ContentProvider";
 import { useMemo } from "react";
 import { Badge } from "./badge";
-
+import { Button } from "./button";
+export type CollectionResponse = {
+  id: string;
+  name: string;
+  parentId?: string;
+  numberOfItems?: number;
+}[];
 export interface TreeNode {
   name: string;
   current?: boolean;
   children?: TreeNode[];
   numberOfItems?: number;
   numberOfCollections?: number;
+  id: string;
 }
 
-export default function Tree({ data }: { data: CollectionResponse }) {
+export default function Tree({
+  data,
+  onSubmit,
+}: {
+  onSubmit?: (data: string[]) => Promise<void>;
+  data: CollectionResponse;
+}) {
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const nodes = useMemo(() => buildTree(data), [data]);
+  const selectItem = (item: string) => {
+    setSelectedItems((prev) => {
+      const i = prev.indexOf(item);
+      if (i < 0) {
+        return [...prev, item];
+      }
+      return prev.filter((x) => x !== item);
+    });
+  };
+
   return (
-    <ul role="tree" className="max-w-96 space-y-1">
-      {nodes.map((node) => (
-        <TreeItem key={node.name} node={node} />
-      ))}
-    </ul>
+    <>
+      <ul role="tree" className="max-w-96 space-y-1">
+        {nodes.map((node) => (
+          <TreeItem
+            selectedItems={selectedItems}
+            onClick={selectItem}
+            key={node.name}
+            node={node}
+          />
+        ))}
+      </ul>
+      {onSubmit && (
+        <Button onClick={async () => await onSubmit(selectedItems)}>
+          {" "}
+          Submit{" ("+ selectedItems?.length+")"}
+        </Button>
+      )}
+    </>
   );
 }
 
 function buildTree(data: CollectionResponse): TreeNode[] {
   const nodeMap = new Map<string, TreeNode>();
-  console.log({ data, nodeMap });
-
   data.forEach((item) => {
     nodeMap.set(item.id, {
+      id: item.id,
       name: item.name,
       children: [],
       numberOfItems: item.numberOfItems,
@@ -47,7 +83,6 @@ function buildTree(data: CollectionResponse): TreeNode[] {
   data.forEach((item) => {
     if (item.parentId) {
       const parentNode = nodeMap.get(item.parentId);
-      console.log({ parentNode });
       if (parentNode) {
         parentNode.children = parentNode.children ?? [];
         parentNode.children.push(nodeMap.get(item.id)!);
@@ -63,24 +98,38 @@ function buildTree(data: CollectionResponse): TreeNode[] {
 const TrackCollectionBadge = ({
   id,
   amountPapers,
+  onClick,
+  selectedItems,
 }: {
   id: string;
   amountPapers?: number;
+  onClick?: (item: string) => void;
+  selectedItems?: string[];
 }) => {
   return (
     <Badge
       className="z-20 cursor-pointer"
+      color={selectedItems?.includes(id) ? "teal" : undefined}
       onClick={() => {
-        console.log(id);
+        onClick?.(id);
       }}
     >
       <NewspaperIcon className="h-4 w-4" />
       {amountPapers ?? 0}
+      {id}
     </Badge>
   );
 };
 
-function TreeItem({ node }: { node: TreeNode }) {
+function TreeItem({
+  node,
+  onClick,
+  selectedItems,
+}: {
+  node: TreeNode;
+  onClick: (item: string) => void;
+  selectedItems: string[];
+}) {
   // Leaf node (no children)
   if (!node.children?.length) {
     return (
@@ -93,7 +142,12 @@ function TreeItem({ node }: { node: TreeNode }) {
           >
             {node.name}
           </Text>
-          <TrackCollectionBadge amountPapers={node.numberOfItems} id="x" />
+          <TrackCollectionBadge
+            amountPapers={node.numberOfItems}
+            id={node.id}
+            onClick={onClick}
+            selectedItems={selectedItems}
+          />
         </div>
       </li>
     );
@@ -101,45 +155,57 @@ function TreeItem({ node }: { node: TreeNode }) {
 
   // Branch node (has children)
   return (
-    <li>
-      <Disclosure as="div">
-        {({ open }) => (
-          <>
-            <div className="flex items-center">
-              <DisclosureButton
-                className={clsx(
-                  "group flex items-center text-left text-sm font-semibold text-gray-700",
-                )}
-              >
-                <ChevronRightIcon
+    <>
+      <li>
+        <Disclosure as="div">
+          {({ open }) => (
+            <>
+              <div className="flex items-center">
+                <DisclosureButton
                   className={clsx(
-                    "h-5 w-5 shrink-0 text-gray-400 transition-transform duration-200",
-                    open && "rotate-90 text-gray-500",
-                  )}
-                />
-
-                <Text
-                  className={clsx(
-                    "group flex gap-x-3 rounded-md p-2 text-sm font-semibold text-gray-700",
+                    "group flex items-center text-left text-sm font-semibold text-gray-700",
                   )}
                 >
-                  {node.name}
-                </Text>
-              </DisclosureButton>
-              <TrackCollectionBadge amountPapers={node.numberOfItems} id="x" />
-            </div>
+                  <ChevronRightIcon
+                    className={clsx(
+                      "h-5 w-5 shrink-0 text-gray-400 transition-transform duration-200",
+                      open && "rotate-90 text-gray-500",
+                    )}
+                  />
 
-            <DisclosurePanel
-              as="ul"
-              className="ml-[9.5px] mt-1 space-y-1 border-l border-zinc-600 pl-2"
-            >
-              {node.children?.map((child) => (
-                <TreeItem key={child.name} node={child} />
-              ))}
-            </DisclosurePanel>
-          </>
-        )}
-      </Disclosure>
-    </li>
+                  <Text
+                    className={clsx(
+                      "group flex gap-x-3 rounded-md p-2 text-sm font-semibold text-gray-700",
+                    )}
+                  >
+                    {node.name}
+                  </Text>
+                </DisclosureButton>
+                <TrackCollectionBadge
+                  amountPapers={node.numberOfItems}
+                  id={node.id}
+                  selectedItems={selectedItems}
+                  onClick={onClick}
+                />
+              </div>
+
+              <DisclosurePanel
+                as="ul"
+                className="ml-[9.5px] mt-1 space-y-1 border-l border-zinc-600 pl-2"
+              >
+                {node.children?.map((child) => (
+                  <TreeItem
+                    key={child.name}
+                    node={child}
+                    onClick={onClick}
+                    selectedItems={selectedItems}
+                  />
+                ))}
+              </DisclosurePanel>
+            </>
+          )}
+        </Disclosure>
+      </li>
+    </>
   );
 }

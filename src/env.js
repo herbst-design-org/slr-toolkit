@@ -22,6 +22,7 @@ export const env = createEnv({
     DEFAULT_VECTORPROVIDER_SECRET: z.string(),
     QDRANT_URL: z.string().url(),
     QDRANT_SECRET: z.string(),
+    QDRANT_PORT: z.string(),
   },
 
   /**
@@ -48,6 +49,7 @@ export const env = createEnv({
     DEFAULT_VECTORPROVIDER_SECRET: process.env.DEFAULT_VECTORPROVIDER_SECRET,
     QDRANT_URL: process.env.QDRANT_URL,
     QDRANT_SECRET: process.env.QDRANT_SECRET,
+    QDRANT_PORT: process.env.QDRANT_PORT,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

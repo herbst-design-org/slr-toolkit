@@ -83,7 +83,8 @@ model ContentProvider {
     user User @relation(fields: [userId], references: [id])
     userId String
 
-    Items Item[]
+    collection Collection[]
+
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
@@ -117,14 +118,35 @@ model SLR {
 
     // items in the SLR
     items Item[]
+    
 
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 }
 
+model Collection {
+    id String @id @default(cuid())
+    externalId String
+
+    lastSyncedVersion Int @default(0)
+    isSynced Boolean @default(true)
+
+
+    provider ContentProvider @relation(fields: [providerId], references: [id])
+    providerId String
+    
+    item Item[]
+    
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    }
+
 model Item {
     id String @id @default(cuid())
+    externalId String
 
     title String
     abstract String?
@@ -134,8 +156,8 @@ model Item {
     doi String?
     type ItemType
 
-    providerId String
-    provider ContentProvider @relation(fields: [providerId], references: [id])
+    collectionId String
+    collection Collection @relation(fields: [collectionId], references: [id])
     slr SLR @relation(fields: [slrId], references: [id])
     slrId String
     vectors ItemVector[]
@@ -149,7 +171,7 @@ model ItemVector {
     
     item Item @relation(fields: [itemId], references: [id])
     itemId String
-    embedding String 
+    embeddingId String //id in the qdrant database
     providerId String
     provider VectorProvider @relation(fields: [providerId], references: [id])
     
@@ -170,7 +192,6 @@ model VectorProvider {
 
     items ItemVector[]
     slrs SLR[]
-    vectorStoreName String @default(cuid())
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt

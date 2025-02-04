@@ -1,22 +1,16 @@
 import { ZoteroSync } from "./ZoteroSync";
 import type { ContentProviderType } from "@prisma/client";
 import type { ZoteroLibraryType, ZoteroItemResponse } from "./ZoteroSync";
-
+import type { CollectionResponse } from "~/app/_components/tree";
 type LibraryType = ZoteroLibraryType;
 type ItemResponse = ZoteroItemResponse;
-export type CollectionResponse = {
-  id: string;
-  name: string;
-  parentId?: string;
-  numberOfItems?: number;
-}[];
 
 export interface SyncProvider {
-  getCollections(): Promise<CollectionResponse>;
+  getCollections({ ids }: { ids?: string[] }): Promise<CollectionResponse>;
   verify(): Promise<boolean>;
   update(
     collectionId: string,
-    lastSyncedVersion: number,
+    lastSyncedVersion?: number,
   ): Promise<ItemResponse>;
 }
 
@@ -52,8 +46,16 @@ export class ContentProvider {
         throw new Error(`Unsupported provider type: ${providerType}`);
     }
   }
-
-  getCollections(): Promise<CollectionResponse> {
-    return this.provider.getCollections();
+  getCollections({ ids }: { ids?: string[] }): Promise<CollectionResponse> {
+    return this.provider.getCollections({ ids });
+  }
+  update({
+    collectionId,
+    lastSyncedVersion,
+  }: {
+    collectionId: string;
+    lastSyncedVersion?: number;
+  }): Promise<ItemResponse> {
+    return this.provider.update(collectionId, lastSyncedVersion);
   }
 }

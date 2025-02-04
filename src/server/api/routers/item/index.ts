@@ -5,6 +5,9 @@ import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { VectorProvider } from "./VectorProvider";
 import { TRPCError } from "@trpc/server";
 
+import { randomUUID } from "crypto";
+import { ContentProvider } from "../content/ContentProvider";
+
 export const itemRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(
@@ -38,21 +41,77 @@ export const itemRouter = createTRPCRouter({
 					message: "Unable to create Embedding",
 					code: "INTERNAL_SERVER_ERROR",
 				});
-			
+
+			const randomEmbeddingId = randomUUID();
+			const vectorStoreResponse = await ctx.vdb.upsert(slr.id, {
+				wait: true,
+				points: [
+					{
+						id: randomEmbeddingId,
+						vector: embedding,
+					},
+				],
+			});
+
 			const item = ctx.db.item.create({
 				data: {
 					abstract,
 					title,
 					type: "BOOK",
-					providerId: contentProviderId,
+					collectionId: "xyz",
 					slrId,
 					vectors: {
 						create: {
-							embedding,
+							embeddingId: randomEmbeddingId,
 							providerId: vectorProviderId,
 						},
 					},
 				},
 			});
+			return item;
 		}),
+	createCollections: protectedProcedure
+		.input(
+			z.object({
+				externalIds: z.string().array(),
+				providerId: z.string(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const { externalIds, providerId } = input;
+			return ctx.db.collection.createMany({
+				data: externalIds.map((c) => {
+					return { externalId: c, providerId };
+				}),
+			});
+		}),
+	updateCollections: protectedProcedure.mutation(async ({ ctx }) => {
+		const userId = ctx.session.user.id;
+		const cpData = await ctx.db.contentProvider.findMany({
+			where: { userId },
+		});
+		if (!cpData) return [];
+		const requiredUpdatesTemp = await Promise.all(
+			cpData.map(async (cp) => {
+				const collectionsOfProvider = await ctx.db.collection.findMany({
+					where: { providerId: cp.id, isSynced: true },
+				});
+				const contentProvider = new ContentProvider({
+					...cp,
+					providerType: cp.type,
+				});
+				return await Promise.all(
+					collectionsOfProvider.map((col) =>
+						contentProvider.update({
+							collectionId: col.externalId,
+							lastSyncedVersion: col.lastSyncedVersion,
+						}),
+					),
+				);
+			}),
+		);
+		const requiredUpdatesFlat = requiredUpdatesTemp.flat(1);
+		console.log({ requiredUpdatesFlat });
+		return requiredUpdatesFlat;
+	}),
 });

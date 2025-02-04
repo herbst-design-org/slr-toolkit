@@ -86,6 +86,6 @@ export const contentRouter = createTRPCRouter({
         ...providerData,
         providerType: providerData.type,
       });
-      return provider.getCollections();
+      return provider.getCollections({});
     }),
 });
