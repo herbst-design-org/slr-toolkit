@@ -11,7 +11,7 @@ export interface SyncProvider {
   update(
     collectionId: string,
     lastSyncedVersion?: number,
-  ): Promise<ItemResponse>;
+  ): Promise<{ items: ItemResponse; lastModifiedVersion: number | undefined }>;
 }
 
 interface ContentProviderConfig {
@@ -55,7 +55,7 @@ export class ContentProvider {
   }: {
     collectionId: string;
     lastSyncedVersion?: number;
-  }): Promise<ItemResponse> {
+  }): Promise<{ items: ItemResponse; lastModifiedVersion: number | undefined }> {
     return this.provider.update(collectionId, lastSyncedVersion);
   }
 }

@@ -101,17 +101,28 @@ export const itemRouter = createTRPCRouter({
 					providerType: cp.type,
 				});
 				return await Promise.all(
-					collectionsOfProvider.map((col) =>
-						contentProvider.update({
-							collectionId: col.externalId,
-							lastSyncedVersion: col.lastSyncedVersion,
-						}),
-					),
+					collectionsOfProvider.map(async (col) => {
+						const { items, lastModifiedVersion } = await contentProvider.update(
+							{
+								collectionId: col.externalId,
+								lastSyncedVersion: col.lastSyncedVersion,
+							},
+						);
+						if (lastModifiedVersion)
+							await ctx.db.collection.update({
+								where: { id: col.id },
+								data: { lastSyncedVersion: lastModifiedVersion },
+							});
+						return items;
+					}),
 				);
 			}),
 		);
-		const requiredUpdatesFlat = requiredUpdatesTemp.flat(1);
-		console.log({ requiredUpdatesFlat });
+		const requiredUpdatesFlat = requiredUpdatesTemp.flat(2);
+		// cases item does exist in db, item does not exist in db
+		const itemsInDb = await ctx.db.item.findMany({
+where: { externalId: { in: requiredUpdatesFlat.map((i) => i.key) } },}
+		);
 		return requiredUpdatesFlat;
 	}),
 });

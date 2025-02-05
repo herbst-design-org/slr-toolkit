@@ -168,6 +168,8 @@ model Item {
 
 model ItemVector {
     id String @id @default(cuid())
+
+    isStale Boolean @default(false)
     
     item Item @relation(fields: [itemId], references: [id])
     itemId String

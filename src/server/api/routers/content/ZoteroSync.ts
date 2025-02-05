@@ -126,7 +126,10 @@ export class ZoteroSync {
   public async update(
     collectionId: string,
     lastSyncedVersion?: number,
-  ): Promise<ZoteroItemResponse> {
+  ): Promise<{
+    items: ZoteroItemResponse;
+    lastModifiedVersion: number | undefined;
+  }> {
     // Fetch all relevant items (pagination included) and handle timeouts
     const items = await this.fetchAllItems(collectionId, lastSyncedVersion);
     return items;
@@ -175,9 +178,11 @@ export class ZoteroSync {
     collectionId: string,
     lastSyncedVersion?: number,
   ) {
+    console.log({ lastSyncedVersion });
     let start = 0;
     const limit = 100;
     const allItems: ZoteroItemResponse = [];
+    let lastModifiedVersion = lastSyncedVersion;
 
     while (true) {
       const url = new URL(
@@ -198,8 +203,14 @@ export class ZoteroSync {
 
       const items = (await response.json()) as ZoteroItemResponse;
       allItems.push(...items);
-      console.log({items});
-
+      console.log({items})
+      try {
+        lastModifiedVersion = parseInt(
+          response.headers.get("last-modified-version") ?? "",
+        );
+      } catch (e) {
+        console.log(e);
+      }
       // Check if there's a "rel=next" link for pagination
       const linkHeader = response.headers.get("Link") ?? "";
       const hasNext = linkHeader.includes('rel="next"');
@@ -209,7 +220,10 @@ export class ZoteroSync {
       start += limit;
     }
 
-    return allItems;
+    return {
+      items: allItems,
+      lastModifiedVersion,
+    };
   }
 
   /**
