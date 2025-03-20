@@ -7,3 +7,5 @@ export const vdb = new QdrantClient({
     apiKey: env.QDRANT_SECRET,
     port: parseInt(env.QDRANT_PORT),
 });
+
+export type VdbClient = typeof vdb

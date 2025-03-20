@@ -12,7 +12,7 @@ export type ItemData = {
   title: string
 }
 
-export default function ItemTable({ data, search, action, isLoading }: { action: (selectedItems: RowModel<ItemData>) => Promise<void>,isLoading: boolean,  search: string, data: { id: string, title: string }[] }): ReactElement {
+export default function ItemTable({ data, action, isLoading, buttonText }: { buttonText?: string, action?: (selectedItems: RowModel<ItemData>) => Promise<void>, isLoading?: boolean, search?: string, data: { id: string, title: string }[] }): ReactElement {
   const columns = useMemo(
     () => [
       createSelectColumn<ItemData>(),
@@ -32,5 +32,5 @@ export default function ItemTable({ data, search, action, isLoading }: { action:
 
 
 
-  return <><BasicTable columns={columns} data={data || []} onAccept={{isLoading, buttonText: "Add Selected", action: action }} /></>
+  return <><BasicTable columns={columns} data={data || []} onAccept={action ? { isLoading, buttonText: buttonText ?? "Add / Update Selected", action: action } : undefined} /></>
 }

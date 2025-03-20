@@ -76,7 +76,7 @@ export const contentRouter = createTRPCRouter({
           userId: ctx.session.user.id,
         },
         include: {
-          collection: { where:{isSynced: true}, select: { externalId: true } },
+          collection: { where: { isSynced: true }, select: { externalId: true } },
         },
       });
       if (!providerData) {
@@ -94,4 +94,18 @@ export const contentRouter = createTRPCRouter({
         prev: providerData.collection.map((c) => c.externalId),
       };
     }),
+  getCollectionById: protectedProcedure
+    .input(z.object({
+      id: z.string()
+    }))
+    .query(({ ctx, input }) => {
+      return ctx.db.collection.findUnique({
+        where: {
+          id: input.id,
+          provider: {
+            userId: ctx.session.user.id
+          }
+        }
+      })
+    })
 });

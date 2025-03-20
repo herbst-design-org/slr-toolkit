@@ -211,6 +211,7 @@ model VectorProvider {
     
     url String
     apiKey String /// @encrypted
+    model String @default("")
 
     items ItemVector[]
     slrs SLR[]

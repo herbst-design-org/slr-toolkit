@@ -12,6 +12,7 @@ import {
 } from "../content/ContentProvider";
 import { subtractList } from "~/lib/helpers/subtractList";
 import { type Db } from "~/server/db";
+import { Relevance } from "@prisma/client";
 
 export const itemRouter = createTRPCRouter({
 	getAll: protectedProcedure
@@ -53,12 +54,13 @@ export const itemRouter = createTRPCRouter({
 		.input(
 			z.object({
 				ids: z.string().array(),
-				slrId: z.string()
+				slrId: z.string(),
+				relevance: z.nativeEnum(Relevance).default("UNKNOWN")
 			})
 		)
 		.mutation(({ ctx, input }) => {
 
-			const { ids, slrId } = input
+			const { ids, slrId, relevance } = input
 			return Promise.all(ids.map((id) => {
 				return ctx.db.itemOnSLR.upsert({
 					where: {
@@ -69,9 +71,10 @@ export const itemRouter = createTRPCRouter({
 					},
 					create: {
 						itemId: id,
-						slrId
+						slrId,
+						relevant: relevance
 					},
-					update: {}
+					update: { relevant: relevance }
 				})
 			}))
 		}),

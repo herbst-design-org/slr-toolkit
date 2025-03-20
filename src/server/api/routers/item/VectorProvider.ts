@@ -1,3 +1,5 @@
+import { type VdbClient } from "~/server/vdb";
+
 type EmbeddingResponse = {
   data: Array<{
     embedding: number[];
@@ -9,7 +11,7 @@ export class VectorProvider {
   private apiKey: string;
   private model: string;
 
-  constructor({url, apiKey, model}:{url: string, apiKey: string, model: string}) {
+  constructor({ url, apiKey, model }: { url: string, apiKey: string, model: string }) {
     this.url = url;
     this.apiKey = apiKey;
     this.model = model;
@@ -53,5 +55,9 @@ export class VectorProvider {
     } catch (error) {
       throw new Error(`Failed to generate embedding: ${error.message}`);
     }
+  }
+  async generateAndSaveEmbedding({ input, vdb, embeddingId, collectionId }: { input: string, vdb: VdbClient }) {
+    const embedding = await this.generateEmbedding(input)
+    
   }
 }
