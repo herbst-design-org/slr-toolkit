@@ -75,6 +75,9 @@ export const contentRouter = createTRPCRouter({
           id: input.providerId,
           userId: ctx.session.user.id,
         },
+        include: {
+          collection: { where:{isSynced: true}, select: { externalId: true } },
+        },
       });
       if (!providerData) {
         throw new TRPCError({
@@ -86,6 +89,9 @@ export const contentRouter = createTRPCRouter({
         ...providerData,
         providerType: providerData.type,
       });
-      return provider.getCollections({});
+      return {
+        all: await provider.getCollections({}),
+        prev: providerData.collection.map((c) => c.externalId),
+      };
     }),
 });

@@ -1,6 +1,6 @@
 "use client";
 import { type ContentProvider } from "@prisma/client";
-import { useMemo, useState, type ReactElement } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { Button } from "~/app/_components/button";
 import { Dialog, DialogBody } from "~/app/_components/dialog";
 import { Divider } from "~/app/_components/divider";
@@ -8,20 +8,27 @@ import { Subheading } from "~/app/_components/heading";
 import { Text } from "~/app/_components/text";
 import Tree, { type CollectionResponse } from "~/app/_components/tree";
 import { api } from "~/trpc/react";
+import SearchItemTableWrapper from "./SearchItemTableWrapper";
 
 export default function AddItems({
   providers,
+  slrId
 }: {
   providers: ContentProvider[];
+  slrId: string
 }): ReactElement {
   const [open, setOpen] = useState(false);
   const [providerId, setProviderId] = useState<string | undefined>();
-  console.log({ providerId });
-  const { data: collection } = api.contentProvider.getCollections.useQuery(
-    { providerId: providerId! },
-    { enabled: !!providerId },
-  );
-  const createCollectionsHook = api.item.createCollections.useMutation();
+  const { data: collection, refetch: refetchCollections } =
+    api.contentProvider.getCollections.useQuery(
+      { providerId: providerId! },
+      { enabled: !!providerId },
+    );
+  const createCollectionsHook = api.item.createCollections.useMutation({
+    onSettled: async () => {
+      await refetchCollections();
+    },
+  });
   const onSubmit = async (selectedCollections: string[]) => {
     if (!providerId) return;
     createCollectionsHook.mutate({
@@ -31,21 +38,25 @@ export default function AddItems({
   };
   const updateCollectionsHook = api.item.updateCollections.useMutation();
   const updateCollections = () => {
-    updateCollectionsHook.mutate()
-  }
-
-
+    updateCollectionsHook.mutate();
+  };
   return (
     <div>
       <Dialog onClose={() => setOpen(false)} open={open}>
         <DialogBody>
           {" "}
-          {collection && <Tree onSubmit={onSubmit} data={collection} />}
+          {collection && (
+            <Tree
+              selectedCollections={collection.prev}
+              onSubmit={onSubmit}
+              data={collection.all}
+            />
+          )}
         </DialogBody>
       </Dialog>
-      <Subheading> Add Items</Subheading>
-      <Divider />
-      <div className="my-4 flex gap-4">
+      <Subheading> Manage Collection Subscriptions</Subheading>
+      <Divider className="mb-4" />
+      <div className="mb-8 flex gap-4">
         {providers.map((p) => {
           return (
             <Button
@@ -61,8 +72,11 @@ export default function AddItems({
             </Button>
           );
         })}
-        <Button onClick={() => updateCollections()} > Update </Button>
+        <Button onClick={() => updateCollections()}> Update </Button>
       </div>
+      <Subheading> Add Items</Subheading>
+      <Divider className="mb-4" />
+      <SearchItemTableWrapper slrId={slrId} />
     </div>
   );
 }

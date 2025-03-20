@@ -4,6 +4,7 @@
 generator client {
     provider = "prisma-client-js"
     binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl"]
+    previewFeatures = ["fullTextSearchPostgres"]
     engineType = "binary"
 }
 
@@ -117,12 +118,31 @@ model SLR {
     defaultVectorProviderId String
 
     // items in the SLR
-    items Item[]
+    items ItemOnSLR[]
     
 
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+}
+
+model ItemOnSLR {
+    itemId String
+    item Item @relation(fields: [itemId], references: [id])
+    slrId String
+    slr SLR @relation(fields: [slrId], references: [id])
+
+    relevant Relevance @default(UNKNOWN)
+    note String @default("")
+
+    @@id([itemId, slrId])
+
+    }
+
+enum Relevance {
+RELEVANT
+IRRELEVANT
+UNKNOWN
 }
 
 model Collection {
@@ -158,12 +178,12 @@ model Item {
 
     collectionId String
     collection Collection @relation(fields: [collectionId], references: [id])
-    slr SLR @relation(fields: [slrId], references: [id])
-    slrId String
+    slr ItemOnSLR[] 
     vectors ItemVector[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+    @@unique([externalId, collectionId])
 }
 
 model ItemVector {

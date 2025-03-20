@@ -1,4 +1,4 @@
-import { type CollectionResponse } from "./ContentProvider";
+// import { type CollectionResponse } from "./ContentProvider";
 
 // Top-level array returned by the Zotero API
 export type ZoteroItemResponse = ZoteroItem[];

@@ -29,11 +29,16 @@ export interface TreeNode {
 export default function Tree({
   data,
   onSubmit,
+  selectedCollections,
 }: {
   onSubmit?: (data: string[]) => Promise<void>;
   data: CollectionResponse;
+  selectedCollections?: string[];
 }) {
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  console.log({ selectedCollections });
+  const [selectedItems, setSelectedItems] = useState<string[]>(
+    selectedCollections || [],
+  );
   const nodes = useMemo(() => buildTree(data), [data]);
   const selectItem = (item: string) => {
     setSelectedItems((prev) => {
@@ -60,7 +65,7 @@ export default function Tree({
       {onSubmit && (
         <Button onClick={async () => await onSubmit(selectedItems)}>
           {" "}
-          Submit{" ("+ selectedItems?.length+")"}
+          Submit{" (" + selectedItems?.length + ")"}
         </Button>
       )}
     </>
@@ -130,6 +135,7 @@ function TreeItem({
   onClick: (item: string) => void;
   selectedItems: string[];
 }) {
+  console.log({ st:selectedItems });
   // Leaf node (no children)
   if (!node.children?.length) {
     return (

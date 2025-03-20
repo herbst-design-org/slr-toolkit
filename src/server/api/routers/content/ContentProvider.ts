@@ -3,7 +3,8 @@ import type { ContentProviderType } from "@prisma/client";
 import type { ZoteroLibraryType, ZoteroItemResponse } from "./ZoteroSync";
 import type { CollectionResponse } from "~/app/_components/tree";
 type LibraryType = ZoteroLibraryType;
-type ItemResponse = ZoteroItemResponse;
+export type ItemResponse = ZoteroItemResponse;
+export type SingleItem = ItemResponse[number]
 
 export interface SyncProvider {
   getCollections({ ids }: { ids?: string[] }): Promise<CollectionResponse>;
@@ -55,7 +56,10 @@ export class ContentProvider {
   }: {
     collectionId: string;
     lastSyncedVersion?: number;
-  }): Promise<{ items: ItemResponse; lastModifiedVersion: number | undefined }> {
+  }): Promise<{
+    items: ItemResponse;
+    lastModifiedVersion: number | undefined;
+  }> {
     return this.provider.update(collectionId, lastSyncedVersion);
   }
 }
