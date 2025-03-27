@@ -5,7 +5,7 @@ import { env } from "~/env";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { VectorProvider } from "../item/VectorProvider";
-import { useServerInsertedHTML } from "next/navigation";
+import classify from "./classification";
 
 export const slrRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -131,12 +131,15 @@ export const slrRouter = createTRPCRouter({
 
 			const itemIds = await ctx.db.item.findMany({
 				where: {
-					collectionId: selectedCollection
+					slr: {
+						some: { slrId }
+					}
 				},
 				select: {
 					id: true
 				}
 			}).then(d => d.map(i => i.id))
+			console.log({ found: itemIds.length })
 
 
 			await prepareVectorsForClassification({
@@ -146,14 +149,20 @@ export const slrRouter = createTRPCRouter({
 				itemIds,
 				userId: ctx.session.user.id
 			})
-			
-			await classification({
+
+			const classification = await classify({
+				vdb: ctx.vdb,
+				vpId: vpData.id,
 				db: ctx.db,
 				itemIds,
 				slrId,
 				userId: ctx.session.user.id
-				})
+			})
+
 			
+
+
+
 			return "x"
 		})
 });

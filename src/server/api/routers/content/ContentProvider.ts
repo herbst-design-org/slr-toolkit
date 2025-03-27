@@ -1,11 +1,15 @@
 import { ZoteroSync } from "./ZoteroSync";
 import type { ContentProviderType } from "@prisma/client";
 import type { ZoteroLibraryType, ZoteroItemResponse } from "./ZoteroSync";
-import type { CollectionResponse } from "~/app/_components/tree";
 type LibraryType = ZoteroLibraryType;
 export type ItemResponse = ZoteroItemResponse;
 export type SingleItem = ItemResponse[number]
-
+export type CollectionResponse = {
+  id: string;
+  name: string;
+  parentId?: string;
+  numberOfItems?: number;
+}[];
 export interface SyncProvider {
   getCollections({ ids }: { ids?: string[] }): Promise<CollectionResponse>;
   verify(): Promise<boolean>;

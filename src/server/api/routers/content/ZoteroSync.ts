@@ -1,4 +1,4 @@
-// import { type CollectionResponse } from "./ContentProvider";
+import { type CollectionResponse } from "./ContentProvider";
 
 // Top-level array returned by the Zotero API
 export type ZoteroItemResponse = ZoteroItem[];
@@ -69,6 +69,7 @@ export interface ZoteroItemData {
   version: number;
   itemType: string;
   title: string;
+  abstractNote: string;
   creators: ZoteroCreator[];
   tags: ZoteroTag[];
   collections: string[];
@@ -195,6 +196,7 @@ export class ZoteroSync {
       // Request JSON format by default
       url.searchParams.set("format", "json");
       url.searchParams.set("include", "data");
+      url.searchParams.set("itemType", "-attachment");
 
       const response = await this.timeoutFetch(url.toString());
       if (!response.ok) {
@@ -203,7 +205,7 @@ export class ZoteroSync {
 
       const items = (await response.json()) as ZoteroItemResponse;
       allItems.push(...items);
-      console.log({items})
+      console.log({ items: items[0]?.data })
       try {
         lastModifiedVersion = parseInt(
           response.headers.get("last-modified-version") ?? "",

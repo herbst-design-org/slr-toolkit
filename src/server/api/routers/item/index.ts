@@ -236,6 +236,7 @@ const handleCreateAndUpdate = async ({
 				},
 				data: {
 					title: item.data.title,
+					abstract: item.data.abstractNote
 				},
 			});
 		}),
@@ -247,6 +248,7 @@ const handleCreateAndUpdate = async ({
 			return db.item.create({
 				data: {
 					title: item.data.title,
+					abstract: item.data.abstractNote,
 					type: "BOOK",
 					externalId: itemId,
 					collectionId: item.collectionId,
