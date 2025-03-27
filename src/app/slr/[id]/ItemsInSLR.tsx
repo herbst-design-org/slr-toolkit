@@ -11,14 +11,14 @@ export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
   const { data: irrelevantItems } = api.slr.getItems.useQuery({ id: slr.id, relevance: "IRRELEVANT" })
   const { data: unknownItems } = api.slr.getItems.useQuery({ id: slr.id, relevance: "UNKNOWN" })
 
-  const classifyItemsHook = api.slr.classifyItems.useMutation()
+  const classifyItemsHook = api.slr.classifyCollection.useMutation()
 
   const action = {
     buttonText: "Classify",
     action: async (selectedItems: RowModel<ItemData>) => {
       classifyItemsHook.mutate({
         slrId: slr.id,
-        selectedItemIds: selectedItems.rows.map(row => row.id)
+        selectedCollection: "cm8ok62n90003m3btgcm3fir3"
       })
     },
     isLoading: classifyItemsHook.isPending
@@ -28,7 +28,7 @@ export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
   return <div className="grid grid-cols-2 gap-12 mt-12">
     <div>
       <Subheading>Relevant</Subheading>
-      <ItemTable data={relevantItems ?? []} />
+      <ItemTable data={relevantItems ?? []} /> 
     </div>
     <div>
       <Subheading>Irrelevant</Subheading>

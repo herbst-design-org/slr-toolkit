@@ -165,7 +165,7 @@ model Collection {
     }
 
 model Item {
-    id String @id @default(cuid())
+    id String @id @default(uuid())
     externalId String
 
     title String
@@ -187,7 +187,7 @@ model Item {
 }
 
 model ItemVector {
-    id String @id @default(cuid())
+    id String @id @default(uuid())
 
     isStale Boolean @default(false)
     

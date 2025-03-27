@@ -1,9 +1,11 @@
 import { Relevance } from "@prisma/client";
+import prepareVectorsForClassification from "./prepareVectorsForClassification";
 import { z } from "zod";
 import { env } from "~/env";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { VectorProvider } from "../item/VectorProvider";
+import { useServerInsertedHTML } from "next/navigation";
 
 export const slrRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -30,6 +32,16 @@ export const slrRouter = createTRPCRouter({
 						},
 					});
 				vectorProviderId = defaultVectorProvider.id;
+				await ctx.vdb.createCollection(vectorProviderId, {
+					vectors: {
+						size: 1024,
+						distance: "Cosine",
+					},
+					optimizers_config: {
+						default_segment_number: 2,
+					},
+					replication_factor: 2,
+				});
 			}
 
 			const slr = await ctx.db.sLR.create({
@@ -40,16 +52,7 @@ export const slrRouter = createTRPCRouter({
 				},
 			});
 			console.log({ slr, vdb: ctx.vdb });
-			await ctx.vdb.createCollection(slr.id, {
-				vectors: {
-					size: 1536,
-					distance: "Cosine",
-				},
-				optimizers_config: {
-					default_segment_number: 2,
-				},
-				replication_factor: 2,
-			});
+
 			return slr;
 		}),
 	getAll: protectedProcedure.query(async ({ ctx }) => {
@@ -106,23 +109,14 @@ export const slrRouter = createTRPCRouter({
 			})
 
 		}),
-	classifyItems: protectedProcedure
-		.input(z.object({
-			slrId: z.string(),
-			selectedItemIds: z.string().array()
-		})
-		)
-		.query(({ ctx, input }) => {
 
-			return "x"
-		})
 	classifyCollection: protectedProcedure
 		.input(z.object({
 			slrId: z.string(),
 			selectedCollection: z.string()
 		})
 		)
-		.query(async ({ ctx, input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const { selectedCollection, slrId } = input
 			const vpData = await ctx.db.sLR.findUnique({
 				where: {
@@ -133,43 +127,33 @@ export const slrRouter = createTRPCRouter({
 				},
 			}).then((slr) => slr?.defaultVectorProvider)
 			if (!vpData) return []
-			const vp = new VectorProvider({ ...vpData })
-			const items = await ctx.db.item.findMany({
+			const vp = new VectorProvider({ ...vpData, vdb: ctx.vdb })
+
+			const itemIds = await ctx.db.item.findMany({
 				where: {
 					collectionId: selectedCollection
 				},
-				include: {
-					vectors: {
-						where: {
-							providerId: vpData.id
-						}
-					},
-					slr: {
-						where: {
-							slrId
-						},
-						select: {
-							relevant: true
-						}
-					}
+				select: {
+					id: true
 				}
+			}).then(d => d.map(i => i.id))
+
+
+			await prepareVectorsForClassification({
+				db: ctx.db,
+				vpData,
+				vp,
+				itemIds,
+				userId: ctx.session.user.id
 			})
-
-
-
-			const itemsWithVectors = items.map(item => {
-				const vector = item.vectors[0]
-				if (vector && !vector.isStale) {
-					return {
-						id: item.id,
-						embeddingId: vector.embeddingId,
-						relevant: item.slr[0]?.relevant
-					}
-				}
-			})
-
-
-
+			
+			await classification({
+				db: ctx.db,
+				itemIds,
+				slrId,
+				userId: ctx.session.user.id
+				})
+			
 			return "x"
 		})
 });
