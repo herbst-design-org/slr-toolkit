@@ -40,10 +40,12 @@ export default async function prepareVectorsForClassification({ vpData, db, vp, 
 	const itemsWithStaleVectors = await db.item.findMany({
 		where: {
 			id: { in: itemIds },
-			vectors: { some: {
-				providerId: vpData.id,
-				isStale: true
-			},}
+			vectors: {
+				some: {
+					providerId: vpData.id,
+					isStale: true
+				},
+			}
 		},
 		include: {
 			vectors: {
@@ -57,7 +59,8 @@ export default async function prepareVectorsForClassification({ vpData, db, vp, 
 	const vdbResponse = await vp.generateAndSaveEmbeddings({
 		input: itemsWithStaleVectors,
 		collectionId: vpData.id
-	})
+	}).then(data => data.filter(d => !!d))
+
 	console.log({ vdbResponse })
 	return await db.itemVector.updateMany({
 		where: {

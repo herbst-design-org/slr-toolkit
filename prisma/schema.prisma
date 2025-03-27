@@ -127,17 +127,39 @@ model SLR {
 }
 
 model ItemOnSLR {
+    internalId String @default(uuid()) @unique //used to be referenced by classification 
     itemId String
     item Item @relation(fields: [itemId], references: [id])
     slrId String
     slr SLR @relation(fields: [slrId], references: [id])
+    
+    classifications Classification[]
 
     relevant Relevance @default(UNKNOWN)
     note String @default("")
 
     @@id([itemId, slrId])
+}
 
-    }
+model Classification {
+    id String @id @default(uuid())
+    prediction String
+    probabilities Probability[]
+
+    itemOnSlrId String 
+    itemOnSlr ItemOnSLR? @relation(fields: [itemOnSlrId], references: [internalId])
+
+    date DateTime @default(now())
+}
+
+model Probability {
+    id String @id @default(uuid())
+    label String
+    probability Float
+
+    classificationId String
+    classification Classification? @relation(fields: [classificationId], references: [id])
+}
 
 enum Relevance {
 RELEVANT

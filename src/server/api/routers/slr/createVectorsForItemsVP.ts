@@ -15,7 +15,7 @@ export default async function createVectorsForItemsVP({ db, items, vpId, userId 
 				}
 			})
 		));
-	},{timeout: 30000});
+	}, { timeout: 600000 });
 }
 
 

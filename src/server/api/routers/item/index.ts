@@ -47,7 +47,6 @@ export const itemRouter = createTRPCRouter({
 				take: 1000
 
 			})
-			console.log({ items })
 			return items
 		}),
 	addManyToSLR: protectedProcedure

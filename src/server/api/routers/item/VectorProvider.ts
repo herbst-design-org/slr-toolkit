@@ -52,14 +52,15 @@ export class VectorProvider {
       ) {
         throw new Error("No embeddings found in the response");
       }
+      console.log("embedded " + payload.input)
       return responseData.embedding;
     } catch (error) {
-      throw new Error(`Failed to generate embedding: ${error.message}`);
+      return
     }
   }
   async generateAndSaveEmbedding({ input, embeddingId, collectionId }: { input: string, embeddingId: string, collectionId: string }) {
     const embedding = await this.generateEmbedding(input)
-    if (!embedding) throw new Error("Unable to create Embedding for " + input)
+    if (!embedding) return 
     const payload = {
       points: [
         {
@@ -84,6 +85,7 @@ export class VectorProvider {
    * @param collectionId: the id of the collection in vdb if not set is VP id
    */
   async generateAndSaveEmbeddings({ input, collectionId }: { input: Item[], collectionId: string }) {
-    return Promise.all(input.map(i => this.generateAndSaveEmbedding({ input: i.title ?? "", embeddingId: i.id, collectionId: collectionId ?? this.id })))
+    const genInput = (i: Item) => `${i.title ? "Title: " + i.title : ""} ${i.abstract ? "Abstract: " + i.abstract : ""}`
+    return Promise.all(input.map(i => this.generateAndSaveEmbedding({ input: genInput(i), embeddingId: i.id, collectionId: collectionId ?? this.id })))
   }
 }
