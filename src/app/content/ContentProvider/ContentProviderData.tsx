@@ -16,7 +16,7 @@ export default async function ContentProviderData({
   return (
     <>
       {" "}
-      <Tree data={collection} />
+      <Tree data={collection.all}  />
     </>
   );
 }

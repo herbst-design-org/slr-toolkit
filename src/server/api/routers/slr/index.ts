@@ -172,28 +172,53 @@ export const slrRouter = createTRPCRouter({
 			})
 			console.log({ classification })
 
-			await Promise.all(classification.map(classification => ctx.db.itemOnSLR.update({
-				where: {
-					itemId_slrId: {
-						itemId: classification.id,
-						slrId
-					}
-				},
-				data: {
-					classifications: {
-						create: {
-							prediction: classification.prediction?.toString() ?? "unknown",
-							probabilities: {
-								createMany: {
-									data: classification.probabilities!.map((prob, index) => ({ label: index.toString(), probability: prob }))
-								}
-							}
-						}
-					}
+			
+const BATCH_SIZE = 200;
 
-				}
-			})))
+for (let i = 0; i < classification.length; i += BATCH_SIZE) {
+  const batch = classification.slice(i, i + BATCH_SIZE);
+
+  await Promise.all(batch.map(classification =>
+    ctx.db.itemOnSLR.update({
+      where: {
+        itemId_slrId: {
+          itemId: classification.id,
+          slrId
+        }
+      },
+      data: {
+        classifications: {
+          create: {
+            prediction: classification.prediction?.toString() ?? "unknown",
+            probabilities: {
+              createMany: {
+                data: classification.probabilities!.map((prob, index) => ({
+                  label: index.toString(),
+                  probability: prob
+                }))
+              }
+            }
+          }
+        }
+      }
+    })
+  ));
+}
 			return classification
+		}),
+	removeItems: protectedProcedure
+		.input(z.object({
+			slrId: z.string(),
+			itemIds: z.string().array(),
+		}))
+		.mutation(async ({ ctx, input }) => {
+			const { itemIds, slrId } = input
+			return ctx.db.itemOnSLR.deleteMany({
+				where: {
+					itemId: { in: itemIds },
+					slrId
+				}
+			})
 		})
 });
 

@@ -60,7 +60,7 @@ export class VectorProvider {
   }
   async generateAndSaveEmbedding({ input, embeddingId, collectionId }: { input: string, embeddingId: string, collectionId: string }) {
     const embedding = await this.generateEmbedding(input)
-    if (!embedding) return 
+    if (!embedding) return
     const payload = {
       points: [
         {
@@ -76,6 +76,7 @@ export class VectorProvider {
     } catch (error) {
       console.log(error)
     }
+    console.log({...vdbResponse, embeddingId })
     return { ...vdbResponse, embeddingId }
   }
   /**

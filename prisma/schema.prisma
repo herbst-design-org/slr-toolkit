@@ -147,7 +147,7 @@ model Classification {
     probabilities Probability[]
 
     itemOnSlrId String 
-    itemOnSlr ItemOnSLR? @relation(fields: [itemOnSlrId], references: [internalId])
+    itemOnSlr ItemOnSLR? @relation(fields: [itemOnSlrId], references: [internalId], onDelete: Cascade)
 
     date DateTime @default(now())
 }
@@ -158,7 +158,7 @@ model Probability {
     probability Float
 
     classificationId String
-    classification Classification? @relation(fields: [classificationId], references: [id])
+    classification Classification? @relation(fields: [classificationId], references: [id], onDelete:Cascade)
 }
 
 enum Relevance {

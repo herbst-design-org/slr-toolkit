@@ -29,7 +29,7 @@ export default async function prepareVectorsForClassification({ vpData, db, vp, 
 					}
 				}
 			]
-		}
+		},
 	})
 	await createEmptyVectorForItemsVP({
 		items: itemsWithoutVectorForVP,
@@ -54,14 +54,15 @@ export default async function prepareVectorsForClassification({ vpData, db, vp, 
 					isStale: true
 				}
 			},
-		}
+		},
 	})
 	const vdbResponse = await vp.generateAndSaveEmbeddings({
 		input: itemsWithStaleVectors,
 		collectionId: vpData.id
 	}).then(data => data.filter(d => !!d))
 
-	console.log({ vdbResponse })
+
+
 	return await db.itemVector.updateMany({
 		where: {
 			itemId: { in: vdbResponse.map(i => i.embeddingId) },

@@ -8,6 +8,7 @@ import { type RowModel } from "@tanstack/react-table"
 import { Text } from "~/app/_components/text"
 import { Badge } from "~/app/_components/badge"
 import QuickClassify from "~/app/_components/quick-classify"
+import { Button } from "~/app/_components/button"
 
 type R_SlrClassifySLR = RouterOutputs["slr"]["classifySLR"]
 
@@ -23,6 +24,11 @@ export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
       setResult(() => data.sort((a, b) => ((b.probabilities?.[1] ?? 0) - (a.probabilities?.[1] ?? 0))))
     }
   })
+  const removeUnknownItemsHook = api.slr.removeItems.useMutation({
+    onSuccess: () => {
+      setResult([])
+    }
+  })
 
   const action = {
     buttonText: "Classify",
@@ -33,6 +39,11 @@ export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
       })
     },
     isLoading: classifyItemsHook.isPending
+  }
+  const removeFromResult = ({ itemId }: { itemId: string }) => {
+    setResult((prev) => {
+      return prev.filter((item) => item.id !== itemId)
+    })
   }
 
 
@@ -61,11 +72,14 @@ export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
           <div key={r.id} className="justify-between flex items-center gap-2">
             <div className="flex gap-2 items-center">
               <Badge> {r.probabilities?.[1]?.toFixed(2)} </Badge>
-              <Text> {r.title} </Text>
+              <a href={r.link}>
+                <Text> {r.title} </Text>
+              </a>
             </div>
-            <QuickClassify itemId={r.id} slrId={slr.id} />
+            <QuickClassify itemId={r.id} slrId={slr.id} removeFromResult={removeFromResult} />
           </div>)}
       </div>
+      <Button className="mt-1 w-full" onClick={() => removeUnknownItemsHook.mutate({ itemIds: result.map(r => r.id), slrId: slr.id })} > Reset Unknown </Button>
     </div>
 
   </div>

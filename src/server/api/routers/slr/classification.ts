@@ -19,11 +19,23 @@ export default async function classify({ db, vdb, itemIds, slrId, userId, vpId }
                 id: vpId
               }
             }
+          },
+          collection: {
+            include: {
+              provider: {
+                select: {
+                  type: true,
+                  libraryType: true,
+                  libraryId: true,
+                }
+              }
+            }
           }
+
         }
       }
     }
-  }).then(data => data.map(item => { return { ...item.item, ...item } }))
+  }).then(data => data.map(item => { return { ...item.item, ...item, link: `zotero://select/${item.item.collection.provider.libraryType === "group" ? "groups/" + item.item.collection.provider.libraryId : "library"}/items/${item.item.externalId} ` } }))
 
   //console.log({ items })
 
@@ -40,7 +52,8 @@ export default async function classify({ db, vdb, itemIds, slrId, userId, vpId }
     data: vectorMap.get(item.itemId)?.vector ?? null,
     label: item.relevant,
     title: item.title,
-    abstract: item.abstract
+    abstract: item.abstract,
+    link: item.link
   }));
 
   const toTrain = mergedItems.filter(i => i.label === "RELEVANT" || i.label === "IRRELEVANT");
@@ -67,7 +80,8 @@ export default async function classify({ db, vdb, itemIds, slrId, userId, vpId }
     prediction: res.predictions[index],
     probabilities: res.probabilities[index],
     title: item.title,
-    abstract: item.abstract
+    abstract: item.abstract,
+    link: item.link
   }));
 
 

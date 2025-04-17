@@ -209,6 +209,22 @@ export const itemRouter = createTRPCRouter({
 			data: requiredUpdatesFlat,
 		});
 	}),
+	updateRelevancy: protectedProcedure
+		.input(z.object({ itemId: z.string(), slrId: z.string(), relevancy: z.nativeEnum(Relevance) }))
+		.mutation(async ({ input, ctx }) => {
+			const { itemId, slrId, relevancy } = input
+			return await ctx.db.itemOnSLR.update({
+				where: {
+					itemId_slrId: {
+						itemId, slrId
+					}
+				},
+				data: {
+					relevant: relevancy
+				}
+			})
+		})
+
 });
 
 const handleCreateAndUpdate = async ({

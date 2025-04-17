@@ -35,7 +35,8 @@ export default function Tree({
   data: CollectionResponse;
   selectedCollections?: string[];
 }) {
-  console.log({ selectedCollections });
+
+  console.log({ selectedCollections,data });
   const [selectedItems, setSelectedItems] = useState<string[]>(
     selectedCollections || [],
   );
@@ -74,7 +75,7 @@ export default function Tree({
 
 function buildTree(data: CollectionResponse): TreeNode[] {
   const nodeMap = new Map<string, TreeNode>();
-  data.forEach((item) => {
+  data?.forEach((item) => {
     nodeMap.set(item.id, {
       id: item.id,
       name: item.name,
@@ -85,7 +86,7 @@ function buildTree(data: CollectionResponse): TreeNode[] {
 
   const tree: TreeNode[] = [];
 
-  data.forEach((item) => {
+  data?.forEach((item) => {
     if (item.parentId) {
       const parentNode = nodeMap.get(item.parentId);
       if (parentNode) {
@@ -135,7 +136,7 @@ function TreeItem({
   onClick: (item: string) => void;
   selectedItems: string[];
 }) {
-  console.log({ st:selectedItems });
+  console.log({ st: selectedItems });
   // Leaf node (no children)
   if (!node.children?.length) {
     return (
