@@ -1,5 +1,4 @@
 import { KeyIcon, MagnifyingGlassIcon } from "@heroicons/react/20/solid"
-import { Combobox, ComboboxLabel, ComboboxOption, ComboboxDescription } from "~/app/_components/combobox"
 import { type Dispatch, type SetStateAction, type ReactElement } from "react"
 import { Field, Label } from "~/app/_components/fieldset"
 import { Input, InputGroup } from "~/app/_components/input"
@@ -26,16 +25,6 @@ export default function Search({ search, setSearch, collectionId, setCollectionI
         <KeyIcon />
         <Input onChange={(e) => { setCollectionId(e.target.value) }} value={collectionId} />
       </InputGroup>
-      <Field>
-        <Label>Assigned to</Label>
-        <Combobox name="user" options={allCollections} displayValue={(collection) => collection?.label} placeholder="Select Collection...">
-          {(collection) => (
-            <ComboboxOption value={collection.id}>
-              <ComboboxLabel>{collection.label}</ComboboxLabel>
-            </ComboboxOption>
-          )}
-        </Combobox>
-      </Field>
     </div>
   )
 }
