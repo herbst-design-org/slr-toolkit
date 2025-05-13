@@ -74,9 +74,6 @@ export default function AddItems({
         })}
         <Button onClick={() => updateCollections()}> Update </Button>
       </div>
-      <Subheading> Add Items</Subheading>
-      <Divider className="mb-4" />
-      <SearchItemTableWrapper slrId={slrId} />
-    </div>
+         </div>
   );
 }

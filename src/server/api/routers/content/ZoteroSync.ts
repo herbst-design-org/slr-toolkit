@@ -48,6 +48,7 @@ interface CollectionData {
   name: string;
   parentCollection?: string;
   relations: Record<string, string>;
+  deleted?: boolean
 }
 
 // Standard hyperlink info
@@ -153,8 +154,9 @@ export class ZoteroSync {
     }
 
     const collections = (await response.json()) as ZoteroCollection[];
+    collections.map((c) => console.log({ c }))
     const formattedCollections = collections
-      .filter((c) => !ids || ids.includes(c.key))
+      .filter((c) => (!ids || ids.includes(c.key)) && !c.data.deleted)
       .map((c) => ({
         id: c.key,
         name: c.data.name,
