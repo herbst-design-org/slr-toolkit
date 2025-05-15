@@ -61,6 +61,14 @@ export const contentRouter = createTRPCRouter({
       where: {
         userId: ctx.session.user.id,
       },
+      include: {
+        collection: {
+          select: {
+            externalId: true,
+            title: true
+          }
+        }
+      }
     });
   }),
   getCollections: protectedProcedure

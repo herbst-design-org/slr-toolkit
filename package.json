@@ -28,6 +28,7 @@
     "@prisma/client": "^6.0.1",
     "@qdrant/js-client-rest": "^1.12.0",
     "@t3-oss/env-nextjs": "^0.10.1",
+    "@tailwindcss/postcss": "^4.1.6",
     "@tanstack/react-query": "^5.50.0",
     "@tanstack/react-table": "^8.20.6",
     "@trpc/client": "^11.0.0-rc.446",

@@ -170,6 +170,7 @@ UNKNOWN
 model Collection {
     id String @id @default(cuid())
     externalId String
+    title String @default("DEFAULT")
 
     lastSyncedVersion Int @default(0)
     isSynced Boolean @default(true)
