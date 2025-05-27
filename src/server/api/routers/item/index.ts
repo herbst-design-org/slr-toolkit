@@ -262,7 +262,7 @@ const handleCreateAndUpdate = async ({
 			if (!item) return;
 			return db.item.create({
 				data: {
-					title: item.data.title,
+					title: item.data.title ?? "unknown",
 					abstract: item.data.abstractNote,
 					type: "BOOK",
 					externalId: itemId,
