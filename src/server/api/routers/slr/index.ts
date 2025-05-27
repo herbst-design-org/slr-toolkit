@@ -34,9 +34,9 @@ export const slrRouter = createTRPCRouter({
 								apiKey: env.DEFAULT_VECTORPROVIDER_SECRET,
 							},
 						});
-						return await ctx.vdb.createCollection(vectorProviderId, {
+						return await ctx.vdb.createCollection(defaultVectorProvider.id, {
 							vectors: {
-								size: 1024,
+								size: env.DEFAULT_VECTORPROVIDER_VECTOR_SIZE,
 								distance: "Cosine",
 							},
 							optimizers_config: {
@@ -172,38 +172,38 @@ export const slrRouter = createTRPCRouter({
 			})
 			console.log({ classification })
 
-			
-const BATCH_SIZE = 200;
 
-for (let i = 0; i < classification.length; i += BATCH_SIZE) {
-  const batch = classification.slice(i, i + BATCH_SIZE);
+			const BATCH_SIZE = 200;
 
-  await Promise.all(batch.map(classification =>
-    ctx.db.itemOnSLR.update({
-      where: {
-        itemId_slrId: {
-          itemId: classification.id,
-          slrId
-        }
-      },
-      data: {
-        classifications: {
-          create: {
-            prediction: classification.prediction?.toString() ?? "unknown",
-            probabilities: {
-              createMany: {
-                data: classification.probabilities!.map((prob, index) => ({
-                  label: index.toString(),
-                  probability: prob
-                }))
-              }
-            }
-          }
-        }
-      }
-    })
-  ));
-}
+			for (let i = 0; i < classification.length; i += BATCH_SIZE) {
+				const batch = classification.slice(i, i + BATCH_SIZE);
+
+				await Promise.all(batch.map(classification =>
+					ctx.db.itemOnSLR.update({
+						where: {
+							itemId_slrId: {
+								itemId: classification.id,
+								slrId
+							}
+						},
+						data: {
+							classifications: {
+								create: {
+									prediction: classification.prediction?.toString() ?? "unknown",
+									probabilities: {
+										createMany: {
+											data: classification.probabilities!.map((prob, index) => ({
+												label: index.toString(),
+												probability: prob
+											}))
+										}
+									}
+								}
+							}
+						}
+					})
+				));
+			}
 			return classification
 		}),
 	removeItems: protectedProcedure
