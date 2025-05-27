@@ -17,6 +17,7 @@ import LoadingButton from './loading-button'
 // TData must have an 'id' if we do getRowId: (row) => row.id
 interface BasicTableProps<TData extends { id: string }> {
 	data: TData[]
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	columns: ColumnDef<TData, any>[]
 	onAccept?: {
 		buttonText: string, action: (selectedItems: RowModel<TData>) => void | Promise<void>,
