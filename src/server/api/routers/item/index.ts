@@ -6,76 +6,75 @@ import { VectorProvider } from "./VectorProvider";
 import { TRPCError } from "@trpc/server";
 
 import { randomUUID } from "crypto";
-import {
-	ContentProvider,
-	type SingleItem,
-} from "../content/ContentProvider";
+import { ContentProvider, type SingleItem } from "../content/ContentProvider";
 import { subtractList } from "~/lib/helpers/subtractList";
 import { type Db } from "~/server/db";
 import { Relevance } from "@prisma/client";
 
 export const itemRouter = createTRPCRouter({
 	getAll: protectedProcedure
-		.input(z.object({
-			search: z.string(),
-			collectionId: z.string().optional()
-		}))
+		.input(
+			z.object({
+				search: z.string(),
+				collectionId: z.string().optional(),
+			}),
+		)
 		.query(async ({ input, ctx }) => {
-			const { search, collectionId } = input
+			const { search, collectionId } = input;
 
-			console.log("here")
+			console.log("here");
 			const items = await ctx.db.item.findMany({
 				where: {
 					collection: {
 						provider: {
-							userId: ctx.session.user.id
+							userId: ctx.session.user.id,
 						},
 						externalId: {
 							contains: collectionId,
-							mode: 'insensitive'
+							mode: "insensitive",
 						},
 					},
 					title: {
 						contains: search,
-						mode: 'insensitive'
+						mode: "insensitive",
 					},
 				},
 				select: {
 					id: true,
 					title: true,
 				},
-				take: 1000
-
-			})
-			return items
+				take: 1000,
+			});
+			return items;
 		}),
 	addManyToSLR: protectedProcedure
 		.input(
 			z.object({
 				ids: z.string().array(),
 				slrId: z.string(),
-				relevance: z.nativeEnum(Relevance).default("UNKNOWN")
-			})
+				relevance: z.nativeEnum(Relevance).default("UNKNOWN"),
+			}),
 		)
 		.mutation(({ ctx, input }) => {
-
-			const { ids, slrId, relevance } = input
-			return Promise.all(ids.map((id) => {
-				return ctx.db.itemOnSLR.upsert({
-					where: {
-						itemId_slrId: {
+			const { ids, slrId, relevance } = input;
+			return Promise.all(
+				ids.map((id) => {
+					return ctx.db.itemOnSLR.upsert({
+						where: {
+							itemId_slrId: {
+								itemId: id,
+								slrId,
+							},
+						},
+						create: {
 							itemId: id,
-							slrId
-						}
-					},
-					create: {
-						itemId: id,
-						slrId,
-						relevant: relevance
-					},
-					update: { relevant: relevance }
-				})
-			}))
+							slrId,
+							relevant: relevance,
+						},
+						update: { relevant: relevance },
+					});
+				}),
+			);
 		}),
 	createCollections: protectedProcedure
 		.input(
@@ -194,7 +193,10 @@ export const itemRouter = createTRPCRouter({
 		// cases item does exist in db, item does not exist in db
 		const itemIdsToUpdate = await ctx.db.item
 			.findMany({
-				where: { externalId: { in: requiredUpdatesExternalIds } },
+				where: {
+					externalId: { in: requiredUpdatesExternalIds },
+					collection: { provider: { userId } },
+				},
 			})
 			.then((data) => data.map((i) => i.externalId));
 		const itemIdsToCreate = subtractList({
@@ -210,21 +212,27 @@ export const itemRouter = createTRPCRouter({
 		});
 	}),
 	updateRelevancy: protectedProcedure
-		.input(z.object({ itemId: z.string(), slrId: z.string(), relevancy: z.nativeEnum(Relevance) }))
+		.input(
+			z.object({
+				itemId: z.string(),
+				slrId: z.string(),
+				relevancy: z.nativeEnum(Relevance),
+			}),
+		)
 		.mutation(async ({ input, ctx }) => {
-			const { itemId, slrId, relevancy } = input
+			const { itemId, slrId, relevancy } = input;
 			return await ctx.db.itemOnSLR.update({
 				where: {
 					itemId_slrId: {
-						itemId, slrId
-					}
+						itemId,
+						slrId,
+					},
 				},
 				data: {
-					relevant: relevancy
-				}
-			})
-		})
-
+					relevant: relevancy,
+				},
+			});
+		}),
 });
 
 const handleCreateAndUpdate = async ({
@@ -251,7 +259,7 @@ const handleCreateAndUpdate = async ({
 				},
 				data: {
 					title: item.data.title,
-					abstract: item.data.abstractNote
+					abstract: item.data.abstractNote,
 				},
 			});
 		}),
