@@ -43,7 +43,7 @@ export const itemRouter = createTRPCRouter({
 					id: true,
 					title: true,
 				},
-				take: 1000,
+				take: 5000,
 			});
 			return items;
 		}),
