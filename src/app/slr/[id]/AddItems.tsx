@@ -9,13 +9,14 @@ import { Text } from "~/app/_components/text";
 import Tree, { type CollectionResponse } from "~/app/_components/tree";
 import { api } from "~/trpc/react";
 import SearchItemTableWrapper from "./SearchItemTableWrapper";
+import LoadingButton from "~/app/_components/loading-button";
 
 export default function AddItems({
   providers,
-  slrId
+  slrId,
 }: {
   providers: ContentProvider[];
-  slrId: string
+  slrId: string;
 }): ReactElement {
   const [open, setOpen] = useState(false);
   const [providerId, setProviderId] = useState<string | undefined>();
@@ -72,8 +73,15 @@ export default function AddItems({
             </Button>
           );
         })}
-        <Button onClick={() => updateCollections()}> Update </Button>
+        <LoadingButton
+          onClick={() => updateCollections()}
+          loading={updateCollectionsHook.isPending}
+          disabled={updateCollectionsHook.isPending}
+        >
+          {" "}
+          Update{" "}
+        </LoadingButton>
       </div>
-         </div>
+    </div>
   );
 }
