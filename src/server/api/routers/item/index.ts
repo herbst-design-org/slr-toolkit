@@ -158,43 +158,40 @@ export const itemRouter = createTRPCRouter({
 			where: { userId },
 		});
 		if (!cpData) return [];
-		const requiredUpdatesTemp = await Promise.all(
-			cpData.map(async (cp) => {
-				const collectionsOfProvider = await ctx.db.collection.findMany({
-					where: { providerId: cp.id, isSynced: true },
-				});
-				const contentProvider = new ContentProvider({
-					...cp,
-					providerType: cp.type,
-				});
-        console.log({ collectionsOfProvider })
-				return await Promise.all(
-					collectionsOfProvider.map(async (col) => {
-						const { items, lastModifiedVersion } = await contentProvider.update(
-							{
-								collectionId: col.externalId,
-								lastSyncedVersion: col.lastSyncedVersion,
-							},
-						);
-            if (col.externalId === "3DWP9QVZ") {
-              console.log({ mainRouteRemainingItems: items });
-            }
+		const results = await Promise.allSettled(
+  cpData.map(async (cp) => {
+    const collectionsOfProvider = await ctx.db.collection.findMany({
+      where: { providerId: cp.id, isSynced: true },
+    });
+    const contentProvider = new ContentProvider({ ...cp, providerType: cp.type });
 
-						if (lastModifiedVersion)
-							await ctx.db.collection.update({
-								where: { id: col.id },
-								data: { lastSyncedVersion: lastModifiedVersion },
-							});
-						return items.map((i) => {
-							return { ...i, collectionId: col.id };
-						});
-					}),
-				);
-			}),
-		);
-    console.log({ requiredUpdatesTemp })
-		const requiredUpdatesFlat = requiredUpdatesTemp.flat(2);
-		const requiredUpdatesExternalIds = requiredUpdatesFlat.map((i) => i.key);
+    // Return the items from this specific provider
+    return await Promise.all(
+      collectionsOfProvider.map(async (col) => {
+        const { items } = await contentProvider.update({
+          collectionId: col.externalId,
+          lastSyncedVersion: col.lastSyncedVersion,
+        });
+        return items.map((i) => ({ ...i, collectionId: col.id }));
+      })
+    );
+  })
+);
+    const requiredUpdatesFlat = results
+  .flatMap((result) => {
+    // Check if THIS specific promise succeeded
+    if (result.status === "fulfilled") {
+      // result.value is the array of arrays from the inner Promise.all
+      return result.value.flat(); 
+    } else {
+      // Log the error so you know WHY it failed
+      console.error("A provider failed to sync:", result.reason);
+      return []; // Return empty array for failed providers to keep .flatMap happy
+    }
+  });
+
+// Now this will work perfectly
+const requiredUpdatesExternalIds = requiredUpdatesFlat.map((i) => i.key);
 
     console.log("\n\n\n\n\n\n2\n\n\n\n\n\n")
 		// cases item does exist in db, item does not exist in db
