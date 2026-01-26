@@ -223,6 +223,9 @@ export class ZoteroSync {
       // If there's a next page, increment the start
       start += limit;
     }
+    if(collectionId === "3DWP9QVZ") {
+      console.log({ allItems });
+    }
 
     return {
       items: allItems,
