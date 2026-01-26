@@ -167,6 +167,7 @@ export const itemRouter = createTRPCRouter({
 					...cp,
 					providerType: cp.type,
 				});
+        console.log({ collectionsOfProvider })
 				return await Promise.all(
 					collectionsOfProvider.map(async (col) => {
 						const { items, lastModifiedVersion } = await contentProvider.update(
@@ -207,6 +208,7 @@ export const itemRouter = createTRPCRouter({
 			subtract: itemIdsToUpdate,
 			from: requiredUpdatesExternalIds,
 		});
+    console.log({ itemIdsToCreate, itemIdsToUpdate, total: requiredUpdatesExternalIds.length })
 
 		return await handleCreateAndUpdate({
 			db: ctx.db,
