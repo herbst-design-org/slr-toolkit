@@ -192,9 +192,11 @@ export const itemRouter = createTRPCRouter({
 				);
 			}),
 		);
+    console.log({ requiredUpdatesTemp })
 		const requiredUpdatesFlat = requiredUpdatesTemp.flat(2);
 		const requiredUpdatesExternalIds = requiredUpdatesFlat.map((i) => i.key);
 
+    console.log("\n\n\n\n\n\n2\n\n\n\n\n\n")
 		// cases item does exist in db, item does not exist in db
 		const itemIdsToUpdate = await ctx.db.item
 			.findMany({
@@ -204,6 +206,7 @@ export const itemRouter = createTRPCRouter({
 				},
 			})
 			.then((data) => data.map((i) => i.externalId));
+    console.log("\n\n\n\n\n\n 3 \n\n\n\n\n\n")
 		const itemIdsToCreate = subtractList({
 			subtract: itemIdsToUpdate,
 			from: requiredUpdatesExternalIds,
