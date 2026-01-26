@@ -54,7 +54,7 @@ export class ContentProvider {
   getCollections({ ids }: { ids?: string[] }): Promise<CollectionResponse> {
     return this.provider.getCollections({ ids });
   }
-  update({
+  async update({
     collectionId,
     lastSyncedVersion,
   }: {

@@ -175,6 +175,10 @@ export const itemRouter = createTRPCRouter({
 								lastSyncedVersion: col.lastSyncedVersion,
 							},
 						);
+            if (col.externalId === "3DWP9QVZ") {
+              console.log({ mainRouteRemainingItems: items });
+            }
+
 						if (lastModifiedVersion)
 							await ctx.db.collection.update({
 								where: { id: col.id },
