@@ -224,7 +224,7 @@ export class ZoteroSync {
       start += limit;
     }
     if(collectionId === "3DWP9QVZ") {
-      console.log({ allItems });
+      // console.log({ allItems });
     }
 
     return {

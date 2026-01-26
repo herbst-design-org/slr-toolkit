@@ -250,6 +250,7 @@ const handleCreateAndUpdate = async ({
 	itemIdsToCreate: string[];
 	data: (SingleItem & { collectionId: string })[];
 }) => {
+  console.log({data})
 	const updates = Promise.all(
 		itemIdsToUpdate.map((itemId) => {
 			const item = data.find((d) => d.key === itemId);
