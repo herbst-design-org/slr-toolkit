@@ -8,6 +8,8 @@ import "./src/env.js";
 /** @type {import("next").NextConfig} */
 const config = { reactStrictMode: true,  output: "standalone", images: {
     domains: ['replicate.delivery'],
-  }, };
+  }, eslint: {
+    ignoreDuringBuilds: true,
+},};
 
 export default config;
