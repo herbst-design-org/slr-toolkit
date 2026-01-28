@@ -17,9 +17,8 @@ export default function Search({ search, setSearch, setCollectionId, allCollecti
 
 
   return (
-    <div className="grid grid-cols-8 w-full gap-4 mb-4">
-      <div className="col-span-2"></div>
-      <div className="col-span-3">
+    <div className="grid grid-cols-6 w-full gap-4 mb-4">
+      <div className="col-span-3 ">
         <InputGroup className="col-span-2">
           <MagnifyingGlassIcon />
           <Input onChange={(e) => { setSearch(e.target.value) }} value={search} />

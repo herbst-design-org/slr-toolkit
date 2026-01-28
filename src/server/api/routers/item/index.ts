@@ -17,10 +17,11 @@ export const itemRouter = createTRPCRouter({
 			z.object({
 				search: z.string(),
 				collectionId: z.string().optional(),
+        take: z.number().min(1).max(5000).default(100),
 			}),
 		)
 		.query(async ({ input, ctx }) => {
-			const { search, collectionId } = input;
+			const { search, collectionId, take } = input;
 
 			console.log("here");
 			const items = await ctx.db.item.findMany({
@@ -43,7 +44,7 @@ export const itemRouter = createTRPCRouter({
 					id: true,
 					title: true,
 				},
-				take: 5000,
+				take,
 			});
 			return items;
 		}),
@@ -193,7 +194,6 @@ export const itemRouter = createTRPCRouter({
 // Now this will work perfectly
 const requiredUpdatesExternalIds = requiredUpdatesFlat.map((i) => i.key);
 
-    console.log("\n\n\n\n\n\n2\n\n\n\n\n\n")
 		// cases item does exist in db, item does not exist in db
 		const itemIdsToUpdate = await ctx.db.item
 			.findMany({
@@ -239,6 +239,79 @@ const requiredUpdatesExternalIds = requiredUpdatesFlat.map((i) => i.key);
 				},
 			});
 		}),
+    createFromBibtex: protectedProcedure
+    .input(
+      z.object({
+        collectionId: z.string(),
+        bibtexData: z.string(),
+        collectionTitle: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { collectionId, bibtexData } = input;
+      let providerData = await ctx.db.contentProvider.findFirst({
+        where: {
+          type: "BIBTEX",
+          userId: ctx.session.user.id,
+        },
+      });
+
+      if (!providerData) {
+        providerData = await ctx.db.contentProvider.create({
+          data: {
+            id: `cp_bibtex_${randomUUID()}`,
+            name: "BibTeX Importer",
+            type: "BIBTEX",
+            userId: ctx.session.user.id,
+          apiKey: "none",
+
+          },
+        });
+      }
+
+      const provider = new ContentProvider({
+        ...providerData,
+      libraryId: collectionId,
+        providerType: providerData.type,
+      });
+
+      const items = await provider.load({items: bibtexData});
+      console.log({items})
+      let collection = null;
+
+      if (items && items.length > 0) {
+        collection = await ctx.db.collection.upsert({
+          where: {
+            externalId_providerId: {
+              externalId: collectionId,
+              providerId: providerData.id,
+            }
+          
+          },
+          create: {
+            externalId: collectionId,
+            title: input.collectionTitle,
+            providerId: providerData.id,
+            isSynced: false,
+          },
+          update: {},
+        });
+      }
+    if (!collection) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to create or find collection for BibTeX import.",
+      });
+    }
+      return Promise.all(
+        items.map((item) =>
+          ctx.db.item.create({
+            data: {...item, collectionId: collection?.id}, 
+          }),
+        ),
+      );
+
+  }),
 });
 
 const handleCreateAndUpdate = async ({

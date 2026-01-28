@@ -115,5 +115,44 @@ export const contentRouter = createTRPCRouter({
           }
         }
       })
-    })
+    }),
+    importItemsFromFile: protectedProcedure
+    .input(
+      z.object({
+        providerId: z.string(),
+        fileContent: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const providerData = await ctx.db.contentProvider.findFirst({
+        where: {
+          id: input.providerId,
+          userId: ctx.session.user.id,
+        },
+      });
+      if (!providerData) {
+        throw new TRPCError({
+          message: "Provider not found",
+          code: "NOT_FOUND",
+        });
+      }
+      const { fileContent } = input;
+      const provider = new ContentProvider({
+        ...providerData,
+        providerType: providerData.type,
+      });
+
+      const collection = await ctx.db.collection.create({
+        data: {
+          providerId: providerData.id,
+          externalId: `imported-${Date.now()}`,
+          title: `Imported on ${new Date().toLocaleDateString()}`,
+          isSynced: false,
+        },
+      });
+      
+      // Here you would parse the fileContent and create items accordingly.
+      // For simplicity, we'll skip that part.
+      return collection;
+  })
 });

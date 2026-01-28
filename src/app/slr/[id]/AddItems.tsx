@@ -56,8 +56,9 @@ export default function AddItems({
         </DialogBody>
       </Dialog>
       <Subheading> Manage Collection Subscriptions</Subheading>
-      <Divider className="mb-4" />
-      <div className="mb-8 flex gap-4">
+      <Divider  />
+
+      <div className="p-8 flex gap-4 flex-wrap border-l border-zinc-800 ">
         {providers.map((p) => {
           return (
             <Button
@@ -77,6 +78,7 @@ export default function AddItems({
           onClick={() => updateCollections()}
           loading={updateCollectionsHook.isPending}
           disabled={updateCollectionsHook.isPending}
+          outline
         >
           {" "}
           Update{" "}

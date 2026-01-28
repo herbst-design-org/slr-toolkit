@@ -1,4 +1,13 @@
 "use client"
+import {
+  Dropdown,
+  DropdownButton,
+  DropdownDescription,
+  DropdownItem,
+  DropdownLabel,
+  DropdownMenu,
+} from '~/app/_components/dropdown'
+import { Cog8ToothIcon, CheckIcon} from "@heroicons/react/16/solid"
 import { useEffect, type ReactElement } from "react"
 import { useState } from "react"
 import Search, { type Collection } from "./Search"
@@ -14,7 +23,8 @@ import { type Relevance } from "@prisma/client"
 export default function SearchItemTableWrapper({ slrId }: { slrId: string }): ReactElement {
 	const [search, setSearch] = useState<string>("")
 	const [collectionId, setCollectionId] = useState<string | undefined>("")
-	const initialData = [{ id: "x", title: "y" }]
+  const [take, setTake] = useState<number>(100)
+	const initialData = [{ id: "", title: "Loading ..." }]
 
 	const { data: providers } = api.contentProvider.getAll.useQuery()
 
@@ -43,7 +53,7 @@ export default function SearchItemTableWrapper({ slrId }: { slrId: string }): Re
 	};
 	const utils = api.useUtils()
 
-	const { data } = api.item.getAll.useQuery({ search, collectionId }, {
+	const { data } = api.item.getAll.useQuery({ search, collectionId, take }, {
 		enabled: true,
 		placeholderData: (prev) => prev ?? initialData
 	})
@@ -56,9 +66,28 @@ export default function SearchItemTableWrapper({ slrId }: { slrId: string }): Re
 	const addItems = async (selectedItems: RowModel<ItemData>) => { addItemsHook.mutate({ relevance, ids: selectedItems.rows.map(row => row.id), slrId }) }
 
 	const [relevance, setRelevance] = useState<Relevance>("UNKNOWN")
+  const takeOptions = [ 100, 1000,  5000]
 
 	return <>
+      <div className="w-full justify-end flex gap-2">
+      <div className="w-full flex justify-end p-0.5 pr-2">
+<Dropdown>
+      <DropdownButton outline className="w-8 h-8 ">
+        <Cog8ToothIcon />
+      </DropdownButton>
+      <DropdownMenu>
+        {takeOptions.map((option) => (
+         <DropdownItem key={option} href="#" onClick={() => setTake(option)}>
+          {take === option && <CheckIcon />          }
+
+          <DropdownLabel>{option}</DropdownLabel>
+        </DropdownItem>
+        ))}
+      </DropdownMenu>
+    </Dropdown>
+      </div>
 		<Search allCollections={providers ? getAllCollectionsFromProviders({ providers: providers }) : [{ id: "x", label: "y" }]} setSearch={setSearch} search={search} collectionId={collectionId} setCollectionId={setCollectionId} />
+   </div>
 		<ItemTable isLoading={addItemsHook.isPending} action={addItems} data={data!} search={search} />
 		<Fieldset className="mt-4">
 			<Field>
