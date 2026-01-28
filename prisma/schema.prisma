@@ -2,254 +2,252 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-    provider = "prisma-client-js"
-    binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl"]
-    previewFeatures = ["fullTextSearchPostgres"]
-    engineType = "binary"
+  provider        = "prisma-client-js"
+  binaryTargets   = ["native", "debian-openssl-3.0.x", "linux-musl"]
+  previewFeatures = ["fullTextSearchPostgres"]
+  engineType      = "binary"
 }
 
 datasource db {
-    provider = "postgresql"
-    // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
-    // Further reading:
-    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
-    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
+  // Further reading:
+  // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
+  // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
+  url      = env("DATABASE_URL")
 }
 
 // Necessary for Next auth
 model Account {
-    id                       String  @id @default(cuid())
-    userId                   String
-    type                     String
-    provider                 String
-    providerAccountId        String
-    refresh_token            String? // @db.Text
-    access_token             String? // @db.Text
-    expires_at               Int?
-    token_type               String?
-    scope                    String?
-    id_token                 String? // @db.Text
-    session_state            String?
-    user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-    refresh_token_expires_in Int?
+  id                       String  @id @default(cuid())
+  userId                   String
+  type                     String
+  provider                 String
+  providerAccountId        String
+  refresh_token            String? // @db.Text
+  access_token             String? // @db.Text
+  expires_at               Int?
+  token_type               String?
+  scope                    String?
+  id_token                 String? // @db.Text
+  session_state            String?
+  user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refresh_token_expires_in Int?
 
-    @@unique([provider, providerAccountId])
+  @@unique([provider, providerAccountId])
 }
 
 model Session {
-    id           String   @id @default(cuid())
-    sessionToken String   @unique
-    userId       String
-    expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String?   @unique
-    emailVerified DateTime?
-    image         String?
-    accounts      Account[]
-    sessions      Session[]
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
 
-    vectorProvider VectorProvider[]
-    contentProvider ContentProvider[]
-    slr            SLR[]
-    participatingIn SLR[] @relation("Participants")
+  vectorProvider  VectorProvider[]
+  contentProvider ContentProvider[]
+  slr             SLR[]
+  participatingIn SLR[]             @relation("Participants")
 }
 
 model VerificationToken {
-    identifier String
-    token      String   @unique
-    expires    DateTime
+  identifier String
+  token      String   @unique
+  expires    DateTime
 
-    @@unique([identifier, token])
+  @@unique([identifier, token])
 }
 
 //-- content provider
 model ContentProvider {
-    id  String @id @default(cuid())
-    type ContentProviderType @default(ZOTERO)
-    name String @default("Provider")
+  id   String              @id @default(cuid())
+  type ContentProviderType @default(ZOTERO)
+  name String              @default("Provider")
 
-    // Credentials - might vary per provider
-    apiUser String? 
-    apiKey String /// @encrypted
+  // Credentials - might vary per provider
+  apiUser String?
+  apiKey  String /// @encrypted
 
-    libraryId String? // ZOTERO
-    libraryType LibraryType? // ZOTERO 
+  libraryId   String? // ZOTERO
+  libraryType LibraryType? // ZOTERO 
 
-    user User @relation(fields: [userId], references: [id])
-    userId String
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
 
-    collection Collection[]
+  collection Collection[]
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-
-    @@unique([type, userId, libraryId])
+  @@unique([type, userId, libraryId])
 }
 
 enum ContentProviderType {
-    ZOTERO
-    MENDELEY
-    ENDNOTE
+  ZOTERO
+  MENDELEY
+  ENDNOTE
+  BIBTEX
 }
 
 enum LibraryType {
-    user 
-    group 
+  user
+  group
 }
 
 //-- SLR
 model SLR {
-    id String @id @default(cuid())
-    title String
-    description String?
+  id          String  @id @default(cuid())
+  title       String
+  description String?
 
-    // slrs can have an owner and multiple participants
-    createdBy User @relation(fields: [createdById], references: [id])
-    createdById String
-    participants User[] @relation("Participants")
-    defaultVectorProvider VectorProvider @relation(references:[id], fields: [defaultVectorProviderId])
-    defaultVectorProviderId String
+  // slrs can have an owner and multiple participants
+  createdBy               User           @relation(fields: [createdById], references: [id])
+  createdById             String
+  participants            User[]         @relation("Participants")
+  defaultVectorProvider   VectorProvider @relation(references: [id], fields: [defaultVectorProviderId])
+  defaultVectorProviderId String
 
-    // items in the SLR
-    items ItemOnSLR[]
-    
+  // items in the SLR
+  items ItemOnSLR[]
 
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ItemOnSLR {
-    internalId String @default(uuid()) @unique //used to be referenced by classification 
-    itemId String
-    item Item @relation(fields: [itemId], references: [id])
-    slrId String
-    slr SLR @relation(fields: [slrId], references: [id])
-    
-    classifications Classification[]
+  internalId String @unique @default(uuid()) //used to be referenced by classification 
+  itemId     String
+  item       Item   @relation(fields: [itemId], references: [id])
+  slrId      String
+  slr        SLR    @relation(fields: [slrId], references: [id])
 
-    relevant Relevance @default(UNKNOWN)
-    note String @default("")
+  classifications Classification[]
 
-    @@id([itemId, slrId])
+  relevant Relevance @default(UNKNOWN)
+  note     String    @default("")
+
+  @@id([itemId, slrId])
 }
 
 model Classification {
-    id String @id @default(uuid())
-    prediction String
-    probabilities Probability[]
+  id            String        @id @default(uuid())
+  prediction    String
+  probabilities Probability[]
 
-    itemOnSlrId String 
-    itemOnSlr ItemOnSLR? @relation(fields: [itemOnSlrId], references: [internalId], onDelete: Cascade)
+  itemOnSlrId String
+  itemOnSlr   ItemOnSLR? @relation(fields: [itemOnSlrId], references: [internalId], onDelete: Cascade)
 
-    date DateTime @default(now())
+  date DateTime @default(now())
 }
 
 model Probability {
-    id String @id @default(uuid())
-    label String
-    probability Float
+  id          String @id @default(uuid())
+  label       String
+  probability Float
 
-    classificationId String
-    classification Classification? @relation(fields: [classificationId], references: [id], onDelete:Cascade)
+  classificationId String
+  classification   Classification? @relation(fields: [classificationId], references: [id], onDelete: Cascade)
 }
 
 enum Relevance {
-RELEVANT
-IRRELEVANT
-UNKNOWN
+  RELEVANT
+  IRRELEVANT
+  UNKNOWN
 }
 
 model Collection {
-    id String @id @default(cuid())
-    externalId String
-    title String @default("DEFAULT")
+  id         String @id @default(cuid())
+  externalId String
+  title      String @default("DEFAULT")
 
-    lastSyncedVersion Int @default(0)
-    isSynced Boolean @default(true)
+  lastSyncedVersion Int     @default(0)
+  isSynced          Boolean @default(true)
 
+  provider   ContentProvider @relation(fields: [providerId], references: [id])
+  providerId String
 
-    provider ContentProvider @relation(fields: [providerId], references: [id])
-    providerId String
-    
-    item Item[]
-    
+  item Item[]
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    }
+  @@unique(fields: [externalId, providerId], name: "externalId_providerId")
+}
 
 model Item {
-    id String @id @default(uuid())
-    externalId String
+  id         String @id @default(uuid())
+  externalId String
 
-    title String
-    abstract String?
-    authors String[]
-    year Int?
-    url String?
-    doi String?
-    type ItemType
+  title    String
+  abstract String?
+  authors  String[]
+  year     Int?
+  url      String?
+  doi      String?
+  type     ItemType
 
-    collectionId String
-    collection Collection @relation(fields: [collectionId], references: [id])
-    slr ItemOnSLR[] 
-    vectors ItemVector[]
+  collectionId String
+  collection   Collection   @relation(fields: [collectionId], references: [id])
+  slr          ItemOnSLR[]
+  vectors      ItemVector[]
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    @@unique([externalId, collectionId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([externalId, collectionId])
 }
 
 model ItemVector {
-    id String @id @default(uuid())
+  id String @id @default(uuid())
 
-    isStale Boolean @default(false)
-    
-    item Item @relation(fields: [itemId], references: [id])
-    itemId String
-    embeddingId String //id in the qdrant database
-    providerId String
-    provider VectorProvider @relation(fields: [providerId], references: [id])
-    
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  isStale Boolean @default(false)
+
+  item        Item           @relation(fields: [itemId], references: [id])
+  itemId      String
+  embeddingId String //id in the qdrant database
+  providerId  String
+  provider    VectorProvider @relation(fields: [providerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model VectorProvider {
-    id String @id @default(cuid())
+  id String @id @default(cuid())
 
-    name String
-    description String?
-    user User @relation(fields: [userId], references: [id])
-    userId String
-    
-    url String
-    apiKey String /// @encrypted
-    model String @default("")
+  name        String
+  description String?
+  user        User    @relation(fields: [userId], references: [id])
+  userId      String
 
-    items ItemVector[]
-    slrs SLR[]
+  url    String
+  apiKey String /// @encrypted
+  model  String @default("")
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  items ItemVector[]
+  slrs  SLR[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum ItemType {
-    ARTICLE
-    BOOK
-    CHAPTER
-    CONFERENCE
-    REPORT
-    THESIS
-    WEBPAGE
-    OTHER
+  ARTICLE
+  BOOK
+  CHAPTER
+  CONFERENCE
+  REPORT
+  THESIS
+  WEBPAGE
+  OTHER
 }

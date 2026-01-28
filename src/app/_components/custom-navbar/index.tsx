@@ -45,7 +45,7 @@ const navItems = [
 	{ label: "Home", url: "/" },
 	{ label: "Provider", url: "/content" },
 	{ label: "SLR", url: "/slr" },
-	{ label: "Broadcasts", url: "/broadcasts" },
+	{ label: "Add from Bibtex", url: "/bibtex-import" },
 	{ label: "Settings", url: "/settings" },
 ];
 

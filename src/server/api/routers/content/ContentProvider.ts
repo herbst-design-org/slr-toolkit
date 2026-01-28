@@ -1,9 +1,12 @@
 import { ZoteroSync } from "./ZoteroSync";
-import type { ContentProviderType } from "@prisma/client";
+import type { ContentProviderType, Item } from "@prisma/client";
 import type { ZoteroLibraryType, ZoteroItemResponse } from "./ZoteroSync";
+import { BibTeXProvider } from "./FileImport";
 type LibraryType = ZoteroLibraryType;
 export type ItemResponse = ZoteroItemResponse;
 export type SingleItem = ItemResponse[number]
+export type ItemWithoutIdAndDates = Omit<Item, "id" | "createdAt" | "updatedAt">;
+
 export type CollectionResponse = {
   id: string;
   name: string;
@@ -17,7 +20,9 @@ export interface SyncProvider {
     collectionId: string,
     lastSyncedVersion?: number,
   ): Promise<{ items: ItemResponse; lastModifiedVersion: number | undefined }>;
+  load(items:string): Promise<ItemWithoutIdAndDates[]>;
 }
+
 
 interface ContentProviderConfig {
   providerType: ContentProviderType;
@@ -47,6 +52,9 @@ export class ContentProvider {
           groupId: libraryId,
         });
         break;
+      case "BIBTEX":
+        this.provider = new BibTeXProvider(libraryId ?? "")
+        break;
       default:
         throw new Error(`Unsupported provider type: ${providerType}`);
     }
@@ -65,5 +73,9 @@ export class ContentProvider {
     lastModifiedVersion: number | undefined;
   }> {
     return this.provider.update(collectionId, lastSyncedVersion);
+  }
+
+  async load({items}: {items: string}): Promise<ItemWithoutIdAndDates[]> {
+    return this.provider.load(items);
   }
 }

@@ -89,7 +89,7 @@ export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
 								>
 									<div className="flex gap-2 items-center">
 										<Badge>{r.probabilities?.[1]?.toFixed(2)}</Badge>
-										<a href={r.link}>
+										<a href={r.link} target="_blank">
 											<Text>{r.title}</Text>
 										</a>
 									</div>
