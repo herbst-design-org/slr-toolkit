@@ -13,25 +13,33 @@ import { Badge } from "~/app/_components/badge"
 import QuickClassify from "~/app/_components/quick-classify"
 
 type R_SlrClassifySLR = RouterOutputs["slr"]["classifySLR"]
+type ClassifySuccess = Exclude<R_SlrClassifySLR, any[]>;
+type ClassItem = ClassifySuccess["classification"][number];
 
 export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
 	const { data: relevantItems } = api.slr.getItems.useQuery({ id: slr.id, relevance: "RELEVANT" })
 	const { data: irrelevantItems } = api.slr.getItems.useQuery({ id: slr.id, relevance: "IRRELEVANT" })
 	const { data: unknownItems } = api.slr.getItems.useQuery({ id: slr.id, relevance: "UNKNOWN" })
 
-	const [result, setResult] = useState<R_SlrClassifySLR>([])
+	const [result, setResult] = useState<ClassItem[]>([])
 	const classifyItemsHook = api.slr.classifySLR.useMutation({
-		onSuccess: (data) => {
-      if (!Array.isArray(data)) {
-        setResult(
-          //@ts-ignore
-          data.classification.sort(
-            (a, b) => (b.probabilities?.[1] ?? 0) - (a.probabilities?.[1] ?? 0)
-          )
-        );
-        notify({message: data.failedItems.map((i) => i).join(", ") + " failed to classify. This can happen if the vector provider fails to generate an embedding for an item. Try classifying those items individually or check the item content for anything that might cause issues."});
-		}
-    }
+	onSuccess: (data) => {
+  if (Array.isArray(data)) return; // or handle the "empty" case
+
+  setResult(
+    [...data.classification].sort(
+      (a, b) => (b.probabilities?.[1] ?? 0) - (a.probabilities?.[1] ?? 0)
+    )
+  );
+
+  if (data.failedItems.length) {
+    notify({
+      message:
+        data.failedItems.join(", ") +
+        " failed to classify. This can happen if the vector provider fails to generate an embedding for an item. Try classifying those items individually or check the item content for anything that might cause issues.",
+    });
+  }
+}
 	})
 	const utils = api.useUtils()
 	const removeUnknownItemsHook = api.slr.removeItems.useMutation({
@@ -53,10 +61,7 @@ export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
 	}
 	const removeFromResult = async ({ itemId }: { itemId: string }) => {
 		setResult((prev) => {
-
-      //@ts-ignore @ts-expect-error @eslint-disable-next-line
 			return prev.filter((item) => item.id !== itemId)
-
 		})
 		await utils.slr.getItems.invalidate({ id: slr.id })
 	}
