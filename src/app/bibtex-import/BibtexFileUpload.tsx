@@ -71,7 +71,7 @@ export default function BibFileUpload({ name }: Props) {
 
     syncToForm(next);
 
-    if (!activeId && next.length) setActiveId(next[0].id);
+    if (!activeId && next.length) setActiveId(next[0]?.id ?? null);
   }, [uploads, activeId]);
 
   const remove = (id: string) => {
