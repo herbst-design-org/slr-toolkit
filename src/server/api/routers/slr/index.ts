@@ -169,7 +169,7 @@ export const slrRouter = createTRPCRouter({
 				vdb: ctx.vdb,
 				vpId: vpData.id,
 				db: ctx.db,
-				itemIds: itemIdsToClassifyFiltered,
+				itemIds: [...itemIdsDefault, ...itemIdsToClassifyFiltered],
 				slrId,
 				userId: ctx.session.user.id
 			})
