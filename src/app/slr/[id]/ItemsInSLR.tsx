@@ -25,6 +25,7 @@ export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
 		onSuccess: (data) => {
       if (!Array.isArray(data)) {
         setResult(
+          //@ts-ignore
           data.classification.sort(
             (a, b) => (b.probabilities?.[1] ?? 0) - (a.probabilities?.[1] ?? 0)
           )
