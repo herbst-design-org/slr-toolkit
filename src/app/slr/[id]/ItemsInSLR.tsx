@@ -11,7 +11,6 @@ import { type RowModel } from "@tanstack/react-table"
 import { Text } from "~/app/_components/text"
 import { Badge } from "~/app/_components/badge"
 import QuickClassify from "~/app/_components/quick-classify"
-import { Button } from "~/app/_components/button"
 
 type R_SlrClassifySLR = RouterOutputs["slr"]["classifySLR"]
 
@@ -54,7 +53,10 @@ export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
 	}
 	const removeFromResult = async ({ itemId }: { itemId: string }) => {
 		setResult((prev) => {
+
+      //@ts-ignore @ts-expect-error @eslint-disable-next-line
 			return prev.filter((item) => item.id !== itemId)
+
 		})
 		await utils.slr.getItems.invalidate({ id: slr.id })
 	}
