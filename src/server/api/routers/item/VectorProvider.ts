@@ -68,7 +68,7 @@ export class VectorProvider {
 	}
 	async generateAndSaveEmbedding({ input, embeddingId, collectionId }: { input: string, embeddingId: string, collectionId: string }) {
 		const embedding = await this.generateEmbedding(input)
-		if (!embedding) return
+		if (!embedding) return {embeddingId, error: "Failed to generate embedding"}
 		const payload = {
 			points: [
 				{

@@ -1,4 +1,5 @@
 "use client"
+import { notify } from "~/app/_components/toast";
 import { AnimatePresence, motion } from "framer-motion";
 import LoadingButton from "~/app/_components/loading-button"
 import { type SLR } from "@prisma/client"
@@ -22,9 +23,15 @@ export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
 	const [result, setResult] = useState<R_SlrClassifySLR>([])
 	const classifyItemsHook = api.slr.classifySLR.useMutation({
 		onSuccess: (data) => {
-			console.log({ data })
-			setResult(() => data.sort((a, b) => ((b.probabilities?.[1] ?? 0) - (a.probabilities?.[1] ?? 0))))
+      if (!Array.isArray(data)) {
+        setResult(
+          data.classification.sort(
+            (a, b) => (b.probabilities?.[1] ?? 0) - (a.probabilities?.[1] ?? 0)
+          )
+        );
+        notify({message: data.failedItems.map((i) => i).join(", ") + " failed to classify. This can happen if the vector provider fails to generate an embedding for an item. Try classifying those items individually or check the item content for anything that might cause issues."});
 		}
+    }
 	})
 	const utils = api.useUtils()
 	const removeUnknownItemsHook = api.slr.removeItems.useMutation({
