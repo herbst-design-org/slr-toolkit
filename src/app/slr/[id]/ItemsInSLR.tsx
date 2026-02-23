@@ -108,7 +108,7 @@ export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
 											<Text>{r.title}</Text>
 										</a>
 									</div>
-									<QuickClassify itemId={r.id} slrId={slr.id} removeFromResult={removeFromResult} />
+									<QuickClassify itemAbstract={r.abstract} itemId={r.id} slrId={slr.id} removeFromResult={removeFromResult} />
 								</motion.div>
 							))}
 						</AnimatePresence>
