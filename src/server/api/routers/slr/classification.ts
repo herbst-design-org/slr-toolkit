@@ -5,6 +5,20 @@ type PredictionResponse = {
 	predictions: number[];               // 0 or 1 for each classify item
 	probabilities: number[][];          // probability for each class per item
 };
+
+
+const getLink = (item: { doi?: string |null; collection: { provider: { libraryType: string | null; type: string; libraryId: string | null; } }, externalId: string }) => {
+switch (item.collection.provider.type) {
+  case "ZOTERO":
+    return `zotero://select/${(item.collection.provider.libraryType === "group") ? "groups/" + item.collection.provider.libraryId : "library"}/items/${item.externalId} `
+    case "BIBTEX":
+    return item.doi ? `https://doi.org/${item.doi}` : ""
+  default:
+    return "#"
+}
+}
+
+
 export default async function classify({ db, vdb, itemIds, slrId, userId, vpId }: { vpId: string, db: Db, itemIds: string[], slrId: string, userId: string, vdb: VdbClient }) {
 	const items = await db.itemOnSLR.findMany({
 		where: {
@@ -36,7 +50,8 @@ export default async function classify({ db, vdb, itemIds, slrId, userId, vpId }
 				}
 			}
 		}
-	}).then(data => data.map(item => { return { ...item.item, ...item, link: `zotero://select/${item.item.collection.provider.libraryType === "group" ? "groups/" + item.item.collection.provider.libraryId : "library"}/items/${item.item.externalId} ` } }))
+	}).then(data => data.map(item => { return { ...item.item, ...item, link: getLink(item.item) } }))
+
 
 	//console.log({ items })
 
@@ -55,7 +70,8 @@ export default async function classify({ db, vdb, itemIds, slrId, userId, vpId }
 		title: item.title,
 		abstract: item.abstract,
 		link: item.link
-	}));
+	})).filter(i => i.data !== null) // filter out items without vectors
+
 
 	const toTrain = mergedItems.filter(i => i.label === "RELEVANT" || i.label === "IRRELEVANT");
 	const toClassify = mergedItems.filter(i => i.label === "UNKNOWN");

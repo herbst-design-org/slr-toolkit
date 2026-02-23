@@ -154,7 +154,7 @@ export const slrRouter = createTRPCRouter({
 			console.log({ found: itemIds.length })
 
 
-			await prepareVectorsForClassification({
+			const {failedItems}  = await prepareVectorsForClassification({
 				db: ctx.db,
 				vpData,
 				vp,
@@ -162,11 +162,14 @@ export const slrRouter = createTRPCRouter({
 				userId: ctx.session.user.id
 			})
 
+      const itemIdsToClassifyFiltered = itemIdsToClassify.filter(id => !failedItems.includes(id))
+
+
 			const classification = await classify({
 				vdb: ctx.vdb,
 				vpId: vpData.id,
 				db: ctx.db,
-				itemIds,
+				itemIds: [...itemIdsDefault, ...itemIdsToClassifyFiltered],
 				slrId,
 				userId: ctx.session.user.id
 			})
@@ -204,7 +207,10 @@ export const slrRouter = createTRPCRouter({
 					})
 				));
 			}
-			return classification
+      const failedItemsWithoutFiltered = itemIdsToClassify.length > 0 ? itemIdsToClassify.filter(id => failedItems.includes(id)) : failedItems
+
+
+			return {classification, failedItems: failedItemsWithoutFiltered}
 		}),
 	removeItems: protectedProcedure
 		.input(z.object({

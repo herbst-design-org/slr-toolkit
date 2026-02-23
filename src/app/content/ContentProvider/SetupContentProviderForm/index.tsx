@@ -20,5 +20,7 @@ export default function SetupContentProviderForm({
       return <>setup Mendeley</>;
     case "ENDNOTE":
       return <>setup Endnote</>;
+    default:
+      return <>Unknown content provider type: {type}</>;
   }
 }

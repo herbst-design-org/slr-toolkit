@@ -1,4 +1,5 @@
 "use client"
+import { notify } from "~/app/_components/toast";
 import { AnimatePresence, motion } from "framer-motion";
 import LoadingButton from "~/app/_components/loading-button"
 import { type SLR } from "@prisma/client"
@@ -10,21 +11,35 @@ import { type RowModel } from "@tanstack/react-table"
 import { Text } from "~/app/_components/text"
 import { Badge } from "~/app/_components/badge"
 import QuickClassify from "~/app/_components/quick-classify"
-import { Button } from "~/app/_components/button"
 
 type R_SlrClassifySLR = RouterOutputs["slr"]["classifySLR"]
+type ClassifySuccess = Exclude<R_SlrClassifySLR, any[]>;
+type ClassItem = ClassifySuccess["classification"][number];
 
 export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
 	const { data: relevantItems } = api.slr.getItems.useQuery({ id: slr.id, relevance: "RELEVANT" })
 	const { data: irrelevantItems } = api.slr.getItems.useQuery({ id: slr.id, relevance: "IRRELEVANT" })
 	const { data: unknownItems } = api.slr.getItems.useQuery({ id: slr.id, relevance: "UNKNOWN" })
 
-	const [result, setResult] = useState<R_SlrClassifySLR>([])
+	const [result, setResult] = useState<ClassItem[]>([])
 	const classifyItemsHook = api.slr.classifySLR.useMutation({
-		onSuccess: (data) => {
-			console.log({ data })
-			setResult(() => data.sort((a, b) => ((b.probabilities?.[1] ?? 0) - (a.probabilities?.[1] ?? 0))))
-		}
+	onSuccess: (data) => {
+  if (Array.isArray(data)) return; // or handle the "empty" case
+
+  setResult(
+    [...data.classification].sort(
+      (a, b) => (b.probabilities?.[1] ?? 0) - (a.probabilities?.[1] ?? 0)
+    )
+  );
+
+  if (data.failedItems.length) {
+    notify({
+      message:
+        data.failedItems.join(", ") +
+        " failed to classify. This can happen if the vector provider fails to generate an embedding for an item. Try classifying those items individually or check the item content for anything that might cause issues.",
+    });
+  }
+}
 	})
 	const utils = api.useUtils()
 	const removeUnknownItemsHook = api.slr.removeItems.useMutation({
@@ -89,7 +104,7 @@ export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
 								>
 									<div className="flex gap-2 items-center">
 										<Badge>{r.probabilities?.[1]?.toFixed(2)}</Badge>
-										<a href={r.link}>
+										<a href={r.link} target="_blank">
 											<Text>{r.title}</Text>
 										</a>
 									</div>

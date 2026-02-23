@@ -1,4 +1,4 @@
-import { type CollectionResponse } from "./ContentProvider";
+import { ItemWithoutIdAndDates, type CollectionResponse } from "./ContentProvider";
 
 // Top-level array returned by the Zotero API
 export type ZoteroItemResponse = ZoteroItem[];
@@ -166,6 +166,10 @@ export class ZoteroSync {
     return formattedCollections;
   }
 
+  public async load(items:string): Promise<ItemWithoutIdAndDates[]> {
+    throw new Error("Zotero Provider does not support fileloading.");
+  }
+
   private getLibraryPrefix(): string {
     if (this.config.libraryType === "user") {
       return `/users/${this.config.userId}`;
@@ -222,9 +226,6 @@ export class ZoteroSync {
 
       // If there's a next page, increment the start
       start += limit;
-    }
-    if(collectionId === "3DWP9QVZ") {
-      // console.log({ allItems });
     }
 
     return {
