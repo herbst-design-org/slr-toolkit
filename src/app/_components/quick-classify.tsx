@@ -6,11 +6,12 @@ import { api } from "~/trpc/react"
 import { type Relevance } from "@prisma/client"
 
 export default function QuickClassify({ itemId, slrId, removeFromResult }:
-	{ itemId: string, slrId: string, removeFromResult: ({ itemId }: { itemId: string }) => void }): ReactElement {
+	{ itemId: string, slrId: string, removeFromResult: ({ itemId }: { itemId: string }) => Promise<void>}): ReactElement {
 	const updateRelevancyHook = api.item.updateRelevancy.useMutation({
 		onSuccess: () => removeFromResult({ itemId })
 	})
-	const updateRelevance = (relevancy: Relevance) => {
+	const updateRelevance = async (relevancy: Relevance) => {
+    await removeFromResult({ itemId })
 		updateRelevancyHook.mutate({
 			itemId, slrId, relevancy
 		})
