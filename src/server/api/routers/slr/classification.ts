@@ -70,7 +70,8 @@ export default async function classify({ db, vdb, itemIds, slrId, userId, vpId }
 		title: item.title,
 		abstract: item.abstract,
 		link: item.link
-	}));
+	})).filter(i => i.data !== null) // filter out items without vectors
+
 
 	const toTrain = mergedItems.filter(i => i.label === "RELEVANT" || i.label === "IRRELEVANT");
 	const toClassify = mergedItems.filter(i => i.label === "UNKNOWN");
