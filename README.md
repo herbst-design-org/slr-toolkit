@@ -52,6 +52,56 @@ PostgreSQL and Qdrant are not published on host ports; they are only
 reachable from the app container. Data is persisted in the `postgres-data`
 and `qdrant-data` volumes.
 
+## MCP (agent access)
+
+The app exposes an [MCP](https://modelcontextprotocol.io) server at
+`/api/mcp` (Streamable HTTP, stateless) so agents can operate on the user's
+data. Available tools:
+
+- `list-slrs` — lists the SLRs the authenticated user owns or participates in.
+
+### Authentication
+
+The endpoint is an OAuth resource server: it accepts access tokens issued by
+the **same Keycloak realm** the web app uses and validates them locally
+against the realm's JWKS. Unauthenticated requests get a `401` whose
+`WWW-Authenticate` header points to the RFC 9728 metadata at
+`/.well-known/oauth-protected-resource/api/mcp`, from which MCP clients
+discover Keycloak and run their OAuth flow.
+
+Tokens are mapped to app users via the token's `sub` (the Keycloak user id,
+stored by NextAuth in `Account.providerAccountId`) — a user must have signed
+in to the web app at least once before agents can act on their behalf.
+
+### Keycloak client for MCP clients
+
+Do not reuse the web app's confidential client. Create a second,
+**public** client in the same realm (e.g. `slr-toolkit-mcp`):
+
+- Client authentication: **off** (public client)
+- Standard flow: **on**; Advanced → PKCE Code Challenge Method: **S256**
+- Valid redirect URIs, depending on which clients you use:
+  - MCP Inspector: `http://localhost:6274/oauth/callback`
+  - Claude: `https://claude.ai/api/mcp/auth_callback` and
+    `https://claude.com/api/mcp/auth_callback`
+
+### Testing with the MCP Inspector
+
+```sh
+npx @modelcontextprotocol/inspector
+```
+
+In the UI select transport "Streamable HTTP", URL
+`https://<your-app>/api/mcp`, and set the OAuth client id to
+`slr-toolkit-mcp` in the auth settings. The inspector redirects to the
+Keycloak login and then connects with the obtained token. Alternatively, with
+a token at hand:
+
+```sh
+npx @modelcontextprotocol/inspector --cli https://<your-app>/api/mcp \
+  --transport http --header "Authorization: Bearer <token>" --method tools/list
+```
+
 ## Field encryption
 
 Provider API keys (fields marked `/// @encrypted` in `prisma/schema.prisma`)
