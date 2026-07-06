@@ -145,7 +145,6 @@ export class ZoteroSync {
     ids?: string[];
   } = {}): Promise<CollectionResponse> {
     const url = `${this.baseUrl}${this.getLibraryPrefix()}/collections`;
-    console.log(url);
     const response = await this.timeoutFetch(url);
     if (!response.ok) {
       throw new Error(
@@ -154,7 +153,6 @@ export class ZoteroSync {
     }
 
     const collections = (await response.json()) as ZoteroCollection[];
-    collections.map((c) => console.log({ c }))
     const formattedCollections = collections
       .filter((c) => (!ids || ids.includes(c.key)) && !c.data.deleted)
       .map((c) => ({
@@ -185,7 +183,6 @@ export class ZoteroSync {
     collectionId: string,
     lastSyncedVersion?: number,
   ) {
-    console.log({ lastSyncedVersion });
     let start = 0;
     const limit = 100;
     const allItems: ZoteroItemResponse = [];
@@ -211,13 +208,11 @@ export class ZoteroSync {
 
       const items = (await response.json()) as ZoteroItemResponse;
       allItems.push(...items);
-      console.log({ items: items[0]?.data })
-      try {
-        lastModifiedVersion = parseInt(
-          response.headers.get("last-modified-version") ?? "",
-        );
-      } catch (e) {
-        console.log(e);
+      const modifiedVersion = parseInt(
+        response.headers.get("last-modified-version") ?? "",
+      );
+      if (!Number.isNaN(modifiedVersion)) {
+        lastModifiedVersion = modifiedVersion;
       }
       // Check if there's a "rel=next" link for pagination
       const linkHeader = response.headers.get("Link") ?? "";

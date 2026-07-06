@@ -15,6 +15,7 @@ export const env = createEnv({
 		KEYCLOAK_SECRET: z.string(),
 		KEYCLOAK_ISSUER: z.string(),
 		DATABASE_URL: z.string().url(),
+		PRISMA_FIELD_ENCRYPTION_KEY: z.string().startsWith("k1."),
 		NODE_ENV: z
 			.enum(["development", "test", "production"])
 			.default("development"),
@@ -48,6 +49,7 @@ export const env = createEnv({
 		KEYCLOAK_SECRET: process.env.KEYCLOAK_SECRET,
 		KEYCLOAK_ISSUER: process.env.KEYCLOAK_ISSUER,
 		DATABASE_URL: process.env.DATABASE_URL,
+		PRISMA_FIELD_ENCRYPTION_KEY: process.env.PRISMA_FIELD_ENCRYPTION_KEY,
 		NODE_ENV: process.env.NODE_ENV,
 		DEFAULT_VECTORPROVIDER_URL: process.env.DEFAULT_VECTORPROVIDER_URL,
 		DEFAULT_VECTORPROVIDER_SECRET: process.env.DEFAULT_VECTORPROVIDER_SECRET,

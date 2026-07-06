@@ -82,9 +82,9 @@ export class VectorProvider {
 			vdbResponse = await this.vdb.upsert(
 				collectionId, payload)
 		} catch (error) {
-			console.log(error)
+			console.error("Vector upsert error:", error)
+			return { embeddingId, error: "Failed to save embedding" }
 		}
-		console.log({ ...vdbResponse, embeddingId })
 		return { ...vdbResponse, embeddingId }
 	}
 	/**

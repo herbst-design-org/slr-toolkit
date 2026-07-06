@@ -7,6 +7,7 @@ import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { VectorProvider } from "../item/VectorProvider";
 import classify from "./classification";
 import { TRPCError } from "@trpc/server";
+import { assertSlrAccess } from "~/server/api/authz";
 
 export const slrRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -17,7 +18,6 @@ export const slrRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			console.log("here1")
 			const userId = ctx.session.user.id;
 			let { vectorProviderId } = input;
 			if (vectorProviderId === "default") {
@@ -25,16 +25,19 @@ export const slrRouter = createTRPCRouter({
 					where: { userId, name: "Default Provider" },
 				});
 				if (!defaultVectorProvider) {
-					await ctx.db.$transaction(async (transDb) => {
-						defaultVectorProvider = await transDb.vectorProvider.create({
-							data: {
-								userId,
-								url: env.DEFAULT_VECTORPROVIDER_URL,
-								name: "Default Provider",
-								apiKey: env.DEFAULT_VECTORPROVIDER_SECRET,
-							},
-						});
-						return await ctx.vdb.createCollection(defaultVectorProvider.id, {
+					// The qdrant call cannot participate in a db transaction, so
+					// compensate manually: drop the provider row if the collection
+					// cannot be created, instead of leaving a dangling provider.
+					defaultVectorProvider = await ctx.db.vectorProvider.create({
+						data: {
+							userId,
+							url: env.DEFAULT_VECTORPROVIDER_URL,
+							name: "Default Provider",
+							apiKey: env.DEFAULT_VECTORPROVIDER_SECRET,
+						},
+					});
+					try {
+						await ctx.vdb.createCollection(defaultVectorProvider.id, {
 							vectors: {
 								size: env.DEFAULT_VECTORPROVIDER_VECTOR_SIZE,
 								distance: "Cosine",
@@ -44,24 +47,30 @@ export const slrRouter = createTRPCRouter({
 							},
 							replication_factor: 2,
 						});
-					})
+					} catch (error) {
+						console.error("Failed to create vector collection:", error);
+						await ctx.db.vectorProvider.delete({
+							where: { id: defaultVectorProvider.id },
+						});
+						throw new TRPCError({ message: "Could not create Vector Provider", code: "INTERNAL_SERVER_ERROR" })
+					}
 				}
-				if (!defaultVectorProvider)
-					throw new TRPCError({ message: "Could not create Vector Provider", code: "INTERNAL_SERVER_ERROR" })
-				vectorProviderId = defaultVectorProvider?.id;
+				vectorProviderId = defaultVectorProvider.id;
+			} else {
+				const vectorProvider = await ctx.db.vectorProvider.findFirst({
+					where: { id: vectorProviderId, userId },
+				});
+				if (!vectorProvider)
+					throw new TRPCError({ message: "Vector Provider not found", code: "NOT_FOUND" })
 			}
-			console.log("here")
 
-			const slr = await ctx.db.sLR.create({
+			return ctx.db.sLR.create({
 				data: {
 					title: input.title,
 					createdById: userId,
 					defaultVectorProviderId: vectorProviderId,
 				},
 			});
-			console.log({ slr, vdb: ctx.vdb });
-
-			return slr;
 		}),
 	getAll: protectedProcedure.query(async ({ ctx }) => {
 		return ctx.db.sLR.findMany({
@@ -93,9 +102,14 @@ export const slrRouter = createTRPCRouter({
 		)
 		.query(async ({ input, ctx }) => {
 			const { id, relevance } = input
+			const userId = ctx.session.user.id;
 			const slrWithItems = await ctx.db.sLR.findUnique({
 				where: {
-					id
+					id,
+					OR: [
+						{ createdById: userId },
+						{ participants: { some: { id: userId } } },
+					],
 				},
 				include: {
 					items: {
@@ -126,16 +140,22 @@ export const slrRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const { slrId, itemIdsToClassify } = input
+			const userId = ctx.session.user.id;
 			const isCustomSelection = itemIdsToClassify.length > 0
 			const vpData = await ctx.db.sLR.findUnique({
 				where: {
-					id: slrId
+					id: slrId,
+					OR: [
+						{ createdById: userId },
+						{ participants: { some: { id: userId } } },
+					],
 				},
 				include: {
 					defaultVectorProvider: true
 				},
 			}).then((slr) => slr?.defaultVectorProvider)
-			if (!vpData) return []
+			if (!vpData)
+				throw new TRPCError({ message: "SLR not found", code: "NOT_FOUND" })
 			const vp = new VectorProvider({ ...vpData, vdb: ctx.vdb })
 
 			const itemIdsDefault = await ctx.db.item.findMany({
@@ -151,15 +171,13 @@ export const slrRouter = createTRPCRouter({
 
 
 			const itemIds = [...itemIdsDefault, ...itemIdsToClassify]
-			console.log({ found: itemIds.length })
-
 
 			const {failedItems}  = await prepareVectorsForClassification({
 				db: ctx.db,
 				vpData,
 				vp,
 				itemIds,
-				userId: ctx.session.user.id
+				userId
 			})
 
       const itemIdsToClassifyFiltered = itemIdsToClassify.filter(id => !failedItems.includes(id))
@@ -171,10 +189,8 @@ export const slrRouter = createTRPCRouter({
 				db: ctx.db,
 				itemIds: [...itemIdsDefault, ...itemIdsToClassifyFiltered],
 				slrId,
-				userId: ctx.session.user.id
+				userId
 			})
-			console.log({ classification })
-
 
 			const BATCH_SIZE = 200;
 
@@ -219,6 +235,7 @@ export const slrRouter = createTRPCRouter({
 		}))
 		.mutation(async ({ ctx, input }) => {
 			const { itemIds, slrId } = input
+			await assertSlrAccess({ db: ctx.db, slrId, userId: ctx.session.user.id })
 			return ctx.db.itemOnSLR.deleteMany({
 				where: {
 					itemId: { in: itemIds },

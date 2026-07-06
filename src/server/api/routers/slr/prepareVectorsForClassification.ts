@@ -64,10 +64,6 @@ export default async function prepareVectorsForClassification({ vpData, db, vp, 
   const vdbResponse = vdbResponseDirty.filter(d => !d.error)
   const failedItems = vdbResponseDirty.filter(d => d.error).map(d => d.embeddingId)
 
-
-
-  console.log({failedItems})
-
 	const success = await db.itemVector.updateMany({
 		where: {
 			itemId: { in: vdbResponse.map(i => i.embeddingId) },

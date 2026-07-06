@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { fieldEncryptionExtension } from "prisma-field-encryption";
 
 import { env } from "~/env";
 
@@ -6,7 +7,12 @@ const createPrismaClient = () =>
   new PrismaClient({
     log:
       env.NODE_ENV === "development" ? [ "error", "warn"] : ["error"],
-  }).$extends({
+  }).$extends(
+    // transparently encrypts fields marked /// @encrypted in the schema
+    fieldEncryptionExtension({
+      encryptionKey: env.PRISMA_FIELD_ENCRYPTION_KEY,
+    }),
+  ).$extends({
     query: {
       item: {
         // as soon as an item is updated, mark all its vectors as stale so they can be updated

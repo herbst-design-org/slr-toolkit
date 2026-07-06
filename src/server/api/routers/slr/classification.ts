@@ -10,7 +10,7 @@ type PredictionResponse = {
 const getLink = (item: { doi?: string |null; collection: { provider: { libraryType: string | null; type: string; libraryId: string | null; } }, externalId: string }) => {
 switch (item.collection.provider.type) {
   case "ZOTERO":
-    return `zotero://select/${(item.collection.provider.libraryType === "group") ? "groups/" + item.collection.provider.libraryId : "library"}/items/${item.externalId} `
+    return `zotero://select/${(item.collection.provider.libraryType === "group") ? "groups/" + item.collection.provider.libraryId : "library"}/items/${item.externalId}`
     case "BIBTEX":
     return item.doi ? `https://doi.org/${item.doi}` : ""
   default:
@@ -52,10 +52,6 @@ export default async function classify({ db, vdb, itemIds, slrId, userId, vpId }
 		}
 	}).then(data => data.map(item => { return { ...item.item, ...item, link: getLink(item.item) } }))
 
-
-	//console.log({ items })
-
-
 	const vectors = await vdb.retrieve(vpId, {
 		ids: items.map(i => i.itemId),
 		with_vector: true,
@@ -96,7 +92,15 @@ export default async function classify({ db, vdb, itemIds, slrId, userId, vpId }
 			classify
 		})
 	})
+	if (!response.ok) {
+		const err = await response.text().catch(() => "");
+		throw new Error(`Classifier request failed with status ${response.status}: ${err}`);
+	}
 	const res = (await response.json()) as PredictionResponse
+	if (!Array.isArray(res.predictions) || !Array.isArray(res.probabilities)
+		|| res.predictions.length !== toClassify.length || res.probabilities.length !== toClassify.length) {
+		throw new Error("Classifier returned an unexpected response format");
+	}
 
 	const classification = toClassify.map((item, index) => ({
 		id: item.id,

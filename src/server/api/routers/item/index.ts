@@ -1,15 +1,14 @@
 import { z } from "zod";
-import { env } from "~/env";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { VectorProvider } from "./VectorProvider";
 import { TRPCError } from "@trpc/server";
 
 import { randomUUID } from "crypto";
 import { ContentProvider, type SingleItem } from "../content/ContentProvider";
 import { subtractList } from "~/lib/helpers/subtractList";
 import { type Db } from "~/server/db";
-import { Relevance } from "@prisma/client";
+import { Relevance, type ItemType } from "@prisma/client";
+import { assertSlrAccess } from "~/server/api/authz";
 
 export const itemRouter = createTRPCRouter({
 	getAll: protectedProcedure
@@ -23,7 +22,6 @@ export const itemRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const { search, collectionId, take } = input;
 
-			console.log("here");
 			const items = await ctx.db.item.findMany({
 				where: {
 					collection: {
@@ -56,8 +54,9 @@ export const itemRouter = createTRPCRouter({
 				relevance: z.nativeEnum(Relevance).default("UNKNOWN"),
 			}),
 		)
-		.mutation(({ ctx, input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const { ids, slrId, relevance } = input;
+			await assertSlrAccess({ db: ctx.db, slrId, userId: ctx.session.user.id });
 			return Promise.all(
 				ids.map((id) => {
 					return ctx.db.itemOnSLR.upsert({
@@ -86,7 +85,12 @@ export const itemRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const { externalIds, providerId } = input;
-			console.log({ externalIds });
+			const provider = await ctx.db.contentProvider.findFirst({
+				where: { id: providerId, userId: ctx.session.user.id },
+			});
+			if (!provider) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Provider not found" });
+			}
 
 			const existingCollections = await ctx.db.collection.findMany({
 				where: {
@@ -105,7 +109,6 @@ export const itemRouter = createTRPCRouter({
 				.filter((c) => !c.isSynced)
 				.map((c) => c.externalId);
 
-			console.log({ existingCollectionsNotSynced, existingCollectionsSynced });
 			const nonExistingCollections = subtractList({
 				subtract: existingCollections.map((c) => c.externalId),
 				from: externalIds,
@@ -145,13 +148,11 @@ export const itemRouter = createTRPCRouter({
 				},
 			});
 
-			const res = await Promise.all([
+			return Promise.all([
 				collectionsToCreatePromise,
 				collectionsToStopSyncingPromise,
 				collectionsToRestartSyncingPromise,
 			]);
-			console.log({ res });
-			return res;
 		}),
 	updateCollections: protectedProcedure.mutation(async ({ ctx }) => {
 		const userId = ctx.session.user.id;
@@ -180,18 +181,14 @@ export const itemRouter = createTRPCRouter({
 );
     const requiredUpdatesFlat = results
   .flatMap((result) => {
-    // Check if THIS specific promise succeeded
     if (result.status === "fulfilled") {
-      // result.value is the array of arrays from the inner Promise.all
-      return result.value.flat(); 
+      return result.value.flat();
     } else {
-      // Log the error so you know WHY it failed
       console.error("A provider failed to sync:", result.reason);
-      return []; // Return empty array for failed providers to keep .flatMap happy
+      return [];
     }
   });
 
-// Now this will work perfectly
 const requiredUpdatesExternalIds = requiredUpdatesFlat.map((i) => i.key);
 
 		// cases item does exist in db, item does not exist in db
@@ -203,12 +200,10 @@ const requiredUpdatesExternalIds = requiredUpdatesFlat.map((i) => i.key);
 				},
 			})
 			.then((data) => data.map((i) => i.externalId));
-    console.log("\n\n\n\n\n\n 3 \n\n\n\n\n\n")
 		const itemIdsToCreate = subtractList({
 			subtract: itemIdsToUpdate,
 			from: requiredUpdatesExternalIds,
 		});
-    console.log({ itemIdsToCreate, itemIdsToUpdate, total: requiredUpdatesExternalIds.length })
 
 		return await handleCreateAndUpdate({
 			db: ctx.db,
@@ -227,6 +222,7 @@ const requiredUpdatesExternalIds = requiredUpdatesFlat.map((i) => i.key);
 		)
 		.mutation(async ({ input, ctx }) => {
 			const { itemId, slrId, relevancy } = input;
+			await assertSlrAccess({ db: ctx.db, slrId, userId: ctx.session.user.id });
 			return await ctx.db.itemOnSLR.update({
 				where: {
 					itemId_slrId: {
@@ -276,7 +272,6 @@ const requiredUpdatesExternalIds = requiredUpdatesFlat.map((i) => i.key);
       });
 
       const items = await provider.load({items: bibtexData});
-      console.log({items})
       let collection = null;
 
       if (items && items.length > 0) {
@@ -314,6 +309,42 @@ const requiredUpdatesExternalIds = requiredUpdatesFlat.map((i) => i.key);
   }),
 });
 
+const ZOTERO_ITEM_TYPE_MAP: Record<string, ItemType> = {
+	journalArticle: "ARTICLE",
+	magazineArticle: "ARTICLE",
+	newspaperArticle: "ARTICLE",
+	preprint: "ARTICLE",
+	book: "BOOK",
+	bookSection: "CHAPTER",
+	conferencePaper: "CONFERENCE",
+	report: "REPORT",
+	thesis: "THESIS",
+	webpage: "WEBPAGE",
+	blogPost: "WEBPAGE",
+};
+
+const asOptionalString = (value: unknown) =>
+	typeof value === "string" && value !== "" ? value : null;
+
+const zoteroItemFields = (item: SingleItem) => {
+	const { data, meta } = item;
+	const authors = (data.creators ?? [])
+		.map((c) => c.name ?? [c.firstName, c.lastName].filter(Boolean).join(" "))
+		.filter(Boolean);
+	const yearMatch = /\b(19|20)\d{2}\b/.exec(
+		meta.parsedDate ?? asOptionalString(data.date) ?? "",
+	);
+	return {
+		title: data.title || "unknown",
+		abstract: data.abstractNote || null,
+		authors,
+		year: yearMatch ? Number(yearMatch[0]) : null,
+		doi: asOptionalString(data.DOI),
+		url: asOptionalString(data.url),
+		type: ZOTERO_ITEM_TYPE_MAP[data.itemType] ?? "OTHER",
+	};
+};
+
 const handleCreateAndUpdate = async ({
 	db,
 	itemIdsToUpdate,
@@ -325,7 +356,6 @@ const handleCreateAndUpdate = async ({
 	itemIdsToCreate: string[];
 	data: (SingleItem & { collectionId: string })[];
 }) => {
-  console.log({data})
 	const updates = Promise.all(
 		itemIdsToUpdate.map((itemId) => {
 			const item = data.find((d) => d.key === itemId);
@@ -337,10 +367,7 @@ const handleCreateAndUpdate = async ({
 						collectionId: item.collectionId,
 					},
 				},
-				data: {
-					title: item.data.title,
-					abstract: item.data.abstractNote,
-				},
+				data: zoteroItemFields(item),
 			});
 		}),
 	);
@@ -350,9 +377,7 @@ const handleCreateAndUpdate = async ({
 			if (!item) return;
 			return db.item.create({
 				data: {
-					title: item.data.title ?? "unknown",
-					abstract: item.data.abstractNote,
-					type: "BOOK",
+					...zoteroItemFields(item),
 					externalId: itemId,
 					collectionId: item.collectionId,
 				},
