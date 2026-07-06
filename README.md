@@ -41,10 +41,12 @@ separately and referenced via environment variables.
    before the app starts; the app waits for it to finish and for both
    databases to be healthy.
 
-3. The app listens on `http://localhost:${APP_PORT}` (default 3000). Put a
-   TLS-terminating reverse proxy in front of it and make sure `AUTH_URL`
-   matches the public URL, since it is used for the OAuth callback with
-   Keycloak.
+3. The app listens on container port 3000 but is not published on a host
+   port: a TLS-terminating reverse proxy (e.g. Coolify's Traefik) is expected
+   to route to it over the Docker network. Make sure `AUTH_URL` matches the
+   public URL, since it is used for the OAuth callback with Keycloak. For a
+   proxy-less deployment, add a `docker-compose.override.yml` with a
+   `ports: ["3000:3000"]` mapping on the `app` service.
 
 PostgreSQL and Qdrant are not published on host ports; they are only
 reachable from the app container. Data is persisted in the `postgres-data`

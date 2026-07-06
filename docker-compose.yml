@@ -15,8 +15,11 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
-    ports:
-      - "${APP_PORT:-3000}:3000"
+    # No host port publish: a reverse proxy (e.g. Coolify's Traefik) reaches
+    # the container on the internal network. For a proxy-less deployment, add
+    # a docker-compose.override.yml with a `ports: ["3000:3000"]` mapping.
+    expose:
+      - "3000"
     environment:
       NODE_ENV: production
       DATABASE_URL: *database-url
