@@ -34,6 +34,7 @@ export const slrRouter = createTRPCRouter({
 							url: env.DEFAULT_VECTORPROVIDER_URL,
 							name: "Default Provider",
 							apiKey: env.DEFAULT_VECTORPROVIDER_SECRET,
+							model: env.DEFAULT_VECTORPROVIDER_MODEL ?? "",
 						},
 					});
 					try {
@@ -156,7 +157,12 @@ export const slrRouter = createTRPCRouter({
 			}).then((slr) => slr?.defaultVectorProvider)
 			if (!vpData)
 				throw new TRPCError({ message: "SLR not found", code: "NOT_FOUND" })
-			const vp = new VectorProvider({ ...vpData, vdb: ctx.vdb })
+			// providers created before DEFAULT_VECTORPROVIDER_MODEL existed have model ""
+			const vp = new VectorProvider({
+				...vpData,
+				model: vpData.model || env.DEFAULT_VECTORPROVIDER_MODEL || "",
+				vdb: ctx.vdb,
+			})
 
 			const itemIdsDefault = await ctx.db.item.findMany({
 				where: {

@@ -10,7 +10,7 @@ import clsx from "clsx";
 import { Text } from "./text";
 import { useMemo } from "react";
 import { Badge } from "./badge";
-import { Button } from "./button";
+import LoadingButton from "./loading-button";
 export type CollectionResponse = {
 	id: string;
 	name: string;
@@ -30,10 +30,14 @@ export default function Tree({
 	data,
 	onSubmit,
 	selectedCollections,
+	submitting,
+	submitLabel,
 }: {
 	onSubmit?: (data: string[]) => Promise<void>;
 	data: CollectionResponse;
 	selectedCollections?: string[];
+	submitting?: boolean;
+	submitLabel?: string;
 }) {
 
 	const [selectedItems, setSelectedItems] = useState<string[]>(
@@ -57,16 +61,20 @@ export default function Tree({
 					<TreeItem
 						selectedItems={selectedItems}
 						onClick={selectItem}
-						key={node.name}
+						key={node.id}
 						node={node}
 					/>
 				))}
 			</ul>
 			{onSubmit && (
-				<Button onClick={async () => await onSubmit(selectedItems)}>
-					{" "}
-					Submit{" (" + selectedItems?.length + ")"}
-				</Button>
+				<LoadingButton
+					className="mt-4"
+					loading={submitting ?? false}
+					disabled={submitting}
+					onClick={async () => await onSubmit(selectedItems)}
+				>
+					{(submitLabel ?? "Submit") + ` (${selectedItems.length})`}
+				</LoadingButton>
 			)}
 		</>
 	);
@@ -192,7 +200,7 @@ function TreeItem({
 							>
 								{node.children?.map((child) => (
 									<TreeItem
-										key={child.name}
+										key={child.id}
 										node={child}
 										onClick={onClick}
 										selectedItems={selectedItems}

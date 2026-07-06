@@ -28,6 +28,19 @@ const createPrismaClient = () =>
           };
           return query(args);
         },
+        // same for the update path of upserts
+        async upsert({ args, query }) {
+          args.update = {
+            ...args.update,
+            vectors: {
+              updateMany: {
+                where: { isStale: false },
+                data: { isStale: true },
+              },
+            },
+          };
+          return query(args);
+        },
       },
     },
   });

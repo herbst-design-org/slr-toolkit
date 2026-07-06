@@ -26,7 +26,9 @@ export class VectorProvider {
 		const payload = {
 			prompt: input,
 			input,
-			model: this.model,
+			// omit the key entirely when unset: some services (e.g. OpenAI)
+			// reject an empty model, others don't take one at all
+			...(this.model ? { model: this.model } : {}),
 		};
 
 		const headers = {

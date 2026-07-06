@@ -6,7 +6,6 @@ import { TRPCError } from "@trpc/server";
 import { randomUUID } from "crypto";
 import { ContentProvider, type SingleItem } from "../content/ContentProvider";
 import { subtractList } from "~/lib/helpers/subtractList";
-import { type Db } from "~/server/db";
 import { Relevance, type ItemType } from "@prisma/client";
 import { assertSlrAccess } from "~/server/api/authz";
 
@@ -129,6 +128,7 @@ export const itemRouter = createTRPCRouter({
 				data: nonExistingCollections.map((c) => {
 					return { externalId: c, providerId };
 				}),
+				skipDuplicates: true,
 			});
 			const collectionsToStopSyncingPromise = ctx.db.collection.updateMany({
 				where: {
@@ -159,58 +159,67 @@ export const itemRouter = createTRPCRouter({
 		const cpData = await ctx.db.contentProvider.findMany({
 			where: { userId },
 		});
-		if (!cpData) return [];
 		const results = await Promise.allSettled(
-  cpData.map(async (cp) => {
-    const collectionsOfProvider = await ctx.db.collection.findMany({
-      where: { providerId: cp.id, isSynced: true },
-    });
-    const contentProvider = new ContentProvider({ ...cp, providerType: cp.type });
+			cpData.map(async (cp) => {
+				const collectionsOfProvider = await ctx.db.collection.findMany({
+					where: { providerId: cp.id, isSynced: true },
+				});
+				const contentProvider = new ContentProvider({
+					...cp,
+					providerType: cp.type,
+				});
 
-    // Return the items from this specific provider
-    return await Promise.all(
-      collectionsOfProvider.map(async (col) => {
-        const { items } = await contentProvider.update({
-          collectionId: col.externalId,
-          lastSyncedVersion: col.lastSyncedVersion,
-        });
-        return items.map((i) => ({ ...i, collectionId: col.id }));
-      })
-    );
-  })
-);
-    const requiredUpdatesFlat = results
-  .flatMap((result) => {
-    if (result.status === "fulfilled") {
-      return result.value.flat();
-    } else {
-      console.error("A provider failed to sync:", result.reason);
-      return [];
-    }
-  });
+				let syncedItems = 0;
+				for (const col of collectionsOfProvider) {
+					const { items, lastModifiedVersion } = await contentProvider.update({
+						collectionId: col.externalId,
+						lastSyncedVersion: col.lastSyncedVersion,
+					});
+					// upsert so that concurrent syncs cannot fail on the
+					// (externalId, collectionId) unique constraint
+					await Promise.all(
+						items.map((item) =>
+							ctx.db.item.upsert({
+								where: {
+									externalId_collectionId: {
+										externalId: item.key,
+										collectionId: col.id,
+									},
+								},
+								create: {
+									...zoteroItemFields(item),
+									externalId: item.key,
+									collectionId: col.id,
+								},
+								update: zoteroItemFields(item),
+							}),
+						),
+					);
+					// only fetch changes since this version on the next sync
+					if (lastModifiedVersion && lastModifiedVersion !== col.lastSyncedVersion) {
+						await ctx.db.collection.update({
+							where: { id: col.id },
+							data: { lastSyncedVersion: lastModifiedVersion },
+						});
+					}
+					syncedItems += items.length;
+				}
+				return syncedItems;
+			}),
+		);
 
-const requiredUpdatesExternalIds = requiredUpdatesFlat.map((i) => i.key);
-
-		// cases item does exist in db, item does not exist in db
-		const itemIdsToUpdate = await ctx.db.item
-			.findMany({
-				where: {
-					externalId: { in: requiredUpdatesExternalIds },
-					collection: { provider: { userId } },
-				},
-			})
-			.then((data) => data.map((i) => i.externalId));
-		const itemIdsToCreate = subtractList({
-			subtract: itemIdsToUpdate,
-			from: requiredUpdatesExternalIds,
+		const failedProviders: string[] = [];
+		let syncedItems = 0;
+		results.forEach((result, index) => {
+			if (result.status === "fulfilled") {
+				syncedItems += result.value;
+			} else {
+				console.error("A provider failed to sync:", result.reason);
+				failedProviders.push(cpData[index]!.name);
+			}
 		});
 
-		return await handleCreateAndUpdate({
-			db: ctx.db,
-			itemIdsToCreate,
-			itemIdsToUpdate,
-			data: requiredUpdatesFlat,
-		});
+		return { syncedItems, failedProviders };
 	}),
 	updateRelevancy: protectedProcedure
 		.input(
@@ -345,44 +354,3 @@ const zoteroItemFields = (item: SingleItem) => {
 	};
 };
 
-const handleCreateAndUpdate = async ({
-	db,
-	itemIdsToUpdate,
-	itemIdsToCreate,
-	data,
-}: {
-	db: Db;
-	itemIdsToUpdate: string[];
-	itemIdsToCreate: string[];
-	data: (SingleItem & { collectionId: string })[];
-}) => {
-	const updates = Promise.all(
-		itemIdsToUpdate.map((itemId) => {
-			const item = data.find((d) => d.key === itemId);
-			if (!item) return;
-			return db.item.update({
-				where: {
-					externalId_collectionId: {
-						externalId: itemId,
-						collectionId: item.collectionId,
-					},
-				},
-				data: zoteroItemFields(item),
-			});
-		}),
-	);
-	const creations = Promise.all(
-		itemIdsToCreate.map((itemId) => {
-			const item = data.find((d) => d.key === itemId);
-			if (!item) return;
-			return db.item.create({
-				data: {
-					...zoteroItemFields(item),
-					externalId: itemId,
-					collectionId: item.collectionId,
-				},
-			});
-		}),
-	);
-	return Promise.all([creations, updates]);
-};

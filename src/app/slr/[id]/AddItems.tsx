@@ -1,14 +1,19 @@
 "use client";
 import { type ContentProvider } from "@prisma/client";
-import { useEffect, useMemo, useState, type ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { Button } from "~/app/_components/button";
-import { Dialog, DialogBody } from "~/app/_components/dialog";
+import {
+  Dialog,
+  DialogBody,
+  DialogDescription,
+  DialogTitle,
+} from "~/app/_components/dialog";
 import { Divider } from "~/app/_components/divider";
 import { Subheading } from "~/app/_components/heading";
 import { Text } from "~/app/_components/text";
-import Tree, { type CollectionResponse } from "~/app/_components/tree";
+import Tree from "~/app/_components/tree";
 import { api } from "~/trpc/react";
-import SearchItemTableWrapper from "./SearchItemTableWrapper";
+import { notify } from "~/app/_components/toast";
 import LoadingButton from "~/app/_components/loading-button";
 
 export default function AddItems({
@@ -20,70 +25,99 @@ export default function AddItems({
 }): ReactElement {
   const [open, setOpen] = useState(false);
   const [providerId, setProviderId] = useState<string | undefined>();
-  const { data: collection, refetch: refetchCollections } =
-    api.contentProvider.getCollections.useQuery(
-      { providerId: providerId! },
-      { enabled: !!providerId },
-    );
-  const createCollectionsHook = api.item.createCollections.useMutation({
-    onSettled: async () => {
-      await refetchCollections();
+  const utils = api.useUtils();
+  const { data: collection } = api.contentProvider.getCollections.useQuery(
+    { providerId: providerId! },
+    { enabled: !!providerId },
+  );
+
+  const updateCollectionsHook = api.item.updateCollections.useMutation({
+    onSuccess: async (data) => {
+      if (data.failedProviders.length) {
+        notify({
+          message: `Sync finished, but these providers failed: ${data.failedProviders.join(", ")}`,
+        });
+      } else {
+        notify({
+          message: `Sync complete: ${data.syncedItems} item(s) added or updated`,
+        });
+      }
+      await utils.item.getAll.invalidate();
     },
+    onError: (error) => notify({ message: `Sync failed: ${error.message}` }),
   });
+
+  const createCollectionsHook = api.item.createCollections.useMutation({
+    onSuccess: async () => {
+      setOpen(false);
+      notify({ message: "Subscriptions saved, syncing items…" });
+      await utils.contentProvider.getCollections.invalidate();
+      updateCollectionsHook.mutate();
+    },
+    onError: (error) =>
+      notify({ message: `Saving subscriptions failed: ${error.message}` }),
+  });
+
   const onSubmit = async (selectedCollections: string[]) => {
-    if (!providerId) return;
+    if (!providerId || createCollectionsHook.isPending) return;
     createCollectionsHook.mutate({
       providerId,
       externalIds: selectedCollections,
     });
   };
-  const updateCollectionsHook = api.item.updateCollections.useMutation();
-  const updateCollections = () => {
-    updateCollectionsHook.mutate();
-  };
+
   return (
     <div>
       <Dialog onClose={() => setOpen(false)} open={open}>
+        <DialogTitle>Collection subscriptions</DialogTitle>
+        <DialogDescription>
+          Click the badge next to a collection to subscribe to it (teal =
+          subscribed). Saving will import its items and keep them in sync on
+          every &quot;Sync items&quot;.
+        </DialogDescription>
         <DialogBody>
-          {" "}
           {collection && (
             <Tree
               selectedCollections={collection.prev}
               onSubmit={onSubmit}
+              submitting={createCollectionsHook.isPending}
+              submitLabel="Save subscriptions"
               data={collection.all}
             />
           )}
         </DialogBody>
       </Dialog>
       <Subheading> Manage Collection Subscriptions</Subheading>
-      <Divider  />
+      <Divider />
 
-      <div className="p-8 flex gap-4 flex-wrap border-l border-zinc-800 ">
+      <div className="flex flex-wrap gap-4 border-l border-zinc-800 p-8">
         {providers.map((p) => {
           return (
             <Button
               onClick={() => {
                 setOpen(true);
                 setProviderId(p.id);
-                console.log("click");
               }}
               key={p.id}
             >
-              {" "}
               {p.name}
             </Button>
           );
         })}
         <LoadingButton
-          onClick={() => updateCollections()}
+          onClick={() => updateCollectionsHook.mutate()}
           loading={updateCollectionsHook.isPending}
           disabled={updateCollectionsHook.isPending}
           outline
         >
-          {" "}
-          Update{" "}
+          Sync items
         </LoadingButton>
       </div>
+      <Text className="pl-8">
+        Pick a provider to choose which collections this account subscribes
+        to. &quot;Sync items&quot; fetches new and changed items from all
+        subscribed collections.
+      </Text>
     </div>
   );
 }

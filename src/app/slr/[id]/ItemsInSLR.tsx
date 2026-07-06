@@ -13,8 +13,7 @@ import { Badge } from "~/app/_components/badge"
 import QuickClassify from "~/app/_components/quick-classify"
 
 type R_SlrClassifySLR = RouterOutputs["slr"]["classifySLR"]
-type ClassifySuccess = Exclude<R_SlrClassifySLR, any[]>;
-type ClassItem = ClassifySuccess["classification"][number];
+type ClassItem = R_SlrClassifySLR["classification"][number];
 
 export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
 	const { data: relevantItems } = api.slr.getItems.useQuery({ id: slr.id, relevance: "RELEVANT" })
@@ -23,9 +22,10 @@ export default function ItemsInSLR({ slr }: { slr: SLR }): ReactElement {
 
 	const [result, setResult] = useState<ClassItem[]>([])
 	const classifyItemsHook = api.slr.classifySLR.useMutation({
+	onError: (error) => {
+		notify({ message: `Classification failed: ${error.message}` });
+	},
 	onSuccess: (data) => {
-  if (Array.isArray(data)) return; // or handle the "empty" case
-
   setResult(
     [...data.classification].sort(
       (a, b) => (b.probabilities?.[1] ?? 0) - (a.probabilities?.[1] ?? 0)
