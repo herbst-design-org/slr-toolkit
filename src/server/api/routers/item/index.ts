@@ -3,9 +3,9 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 
-import { randomUUID } from "crypto";
 import { ContentProvider, type SingleItem } from "../content/ContentProvider";
 import { subtractList } from "~/lib/helpers/subtractList";
+import importBibtex from "./importBibtex";
 import { Relevance, type ItemType } from "@prisma/client";
 import { assertSlrAccess } from "~/server/api/authz";
 
@@ -253,68 +253,22 @@ export const itemRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const { collectionId, bibtexData } = input;
-      let providerData = await ctx.db.contentProvider.findFirst({
-        where: {
-          type: "BIBTEX",
+      try {
+        const { items } = await importBibtex({
+          db: ctx.db,
           userId: ctx.session.user.id,
-        },
-      });
-
-      if (!providerData) {
-        providerData = await ctx.db.contentProvider.create({
-          data: {
-            id: `cp_bibtex_${randomUUID()}`,
-            name: "BibTeX Importer",
-            type: "BIBTEX",
-            userId: ctx.session.user.id,
-          apiKey: "none",
-
-          },
+          bibtexData: input.bibtexData,
+          collectionExternalId: input.collectionId,
+          collectionTitle: input.collectionTitle,
+        });
+        return items;
+      } catch (error) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            error instanceof Error ? error.message : "BibTeX import failed",
         });
       }
-
-      const provider = new ContentProvider({
-        ...providerData,
-      libraryId: collectionId,
-        providerType: providerData.type,
-      });
-
-      const items = await provider.load({items: bibtexData});
-      let collection = null;
-
-      if (items && items.length > 0) {
-        collection = await ctx.db.collection.upsert({
-          where: {
-            externalId_providerId: {
-              externalId: collectionId,
-              providerId: providerData.id,
-            }
-          
-          },
-          create: {
-            externalId: collectionId,
-            title: input.collectionTitle,
-            providerId: providerData.id,
-            isSynced: false,
-          },
-          update: {},
-        });
-      }
-    if (!collection) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to create or find collection for BibTeX import.",
-      });
-    }
-      return Promise.all(
-        items.map((item) =>
-          ctx.db.item.create({
-            data: {...item, collectionId: collection?.id}, 
-          }),
-        ),
-      );
-
   }),
 });
 

@@ -1,11 +1,9 @@
 import { Relevance } from "@prisma/client";
-import prepareVectorsForClassification from "./prepareVectorsForClassification";
+import runSlrClassification, { SlrNotFoundError } from "./runClassification";
 import { z } from "zod";
 import { env } from "~/env";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { VectorProvider } from "../item/VectorProvider";
-import classify from "./classification";
 import { TRPCError } from "@trpc/server";
 import { assertSlrAccess } from "~/server/api/authz";
 
@@ -141,98 +139,19 @@ export const slrRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const { slrId, itemIdsToClassify } = input
-			const userId = ctx.session.user.id;
-			const isCustomSelection = itemIdsToClassify.length > 0
-			const vpData = await ctx.db.sLR.findUnique({
-				where: {
-					id: slrId,
-					OR: [
-						{ createdById: userId },
-						{ participants: { some: { id: userId } } },
-					],
-				},
-				include: {
-					defaultVectorProvider: true
-				},
-			}).then((slr) => slr?.defaultVectorProvider)
-			if (!vpData)
-				throw new TRPCError({ message: "SLR not found", code: "NOT_FOUND" })
-			// providers created before DEFAULT_VECTORPROVIDER_MODEL existed have model ""
-			const vp = new VectorProvider({
-				...vpData,
-				model: vpData.model || env.DEFAULT_VECTORPROVIDER_MODEL || "",
-				vdb: ctx.vdb,
-			})
-
-			const itemIdsDefault = await ctx.db.item.findMany({
-				where: {
-					slr: {
-						some: (isCustomSelection ? { slrId, relevant: { not: "UNKNOWN" } } : { slrId })
-					}
-				},
-				select: {
-					id: true
-				}
-			}).then(d => d.map(i => i.id))
-
-
-			const itemIds = [...itemIdsDefault, ...itemIdsToClassify]
-
-			const {failedItems}  = await prepareVectorsForClassification({
-				db: ctx.db,
-				vpData,
-				vp,
-				itemIds,
-				userId
-			})
-
-      const itemIdsToClassifyFiltered = itemIdsToClassify.filter(id => !failedItems.includes(id))
-
-
-			const classification = await classify({
-				vdb: ctx.vdb,
-				vpId: vpData.id,
-				db: ctx.db,
-				itemIds: [...itemIdsDefault, ...itemIdsToClassifyFiltered],
-				slrId,
-				userId
-			})
-
-			const BATCH_SIZE = 200;
-
-			for (let i = 0; i < classification.length; i += BATCH_SIZE) {
-				const batch = classification.slice(i, i + BATCH_SIZE);
-
-				await Promise.all(batch.map(classification =>
-					ctx.db.itemOnSLR.update({
-						where: {
-							itemId_slrId: {
-								itemId: classification.id,
-								slrId
-							}
-						},
-						data: {
-							classifications: {
-								create: {
-									prediction: classification.prediction?.toString() ?? "unknown",
-									probabilities: {
-										createMany: {
-											data: classification.probabilities!.map((prob, index) => ({
-												label: index.toString(),
-												probability: prob
-											}))
-										}
-									}
-								}
-							}
-						}
-					})
-				));
+			try {
+				return await runSlrClassification({
+					db: ctx.db,
+					vdb: ctx.vdb,
+					slrId,
+					userId: ctx.session.user.id,
+					itemIdsToClassify,
+				})
+			} catch (error) {
+				if (error instanceof SlrNotFoundError)
+					throw new TRPCError({ message: "SLR not found", code: "NOT_FOUND" })
+				throw error
 			}
-      const failedItemsWithoutFiltered = itemIdsToClassify.length > 0 ? itemIdsToClassify.filter(id => failedItems.includes(id)) : failedItems
-
-
-			return {classification, failedItems: failedItemsWithoutFiltered}
 		}),
 	removeItems: protectedProcedure
 		.input(z.object({

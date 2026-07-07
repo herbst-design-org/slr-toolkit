@@ -58,7 +58,17 @@ The app exposes an [MCP](https://modelcontextprotocol.io) server at
 `/api/mcp` (Streamable HTTP, stateless) so agents can operate on the user's
 data. Available tools:
 
-- `list-slrs` — lists the SLRs the authenticated user owns or participates in.
+- `list-slrs` — the SLRs the user owns or participates in, with counts.
+- `get-items` — items of an SLR, filterable by relevance; includes DOI, URL
+  and a `zotero://select` link (Zotero item key) or doi.org link.
+- `set-relevance` — label items RELEVANT / IRRELEVANT / UNKNOWN.
+- `classify-slr` — run the relevance classifier for all UNKNOWN items or a
+  given subset; returns predictions sorted by relevance probability.
+- `import-bibtex` — create items from BibTeX entries, optionally adding them
+  to an SLR with an initial label (idempotent re-imports).
+- `quick-classify` — classify ad-hoc text or the first page of a PDF (by
+  URL, extracted server-side so page text never enters the agent context)
+  against the SLR's labeled examples, without storing anything.
 
 ### Authentication
 
